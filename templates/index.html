@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Prompt Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #loading {
+            display: none;
+            margin: 10px 0;
+            font-style: italic;
+            color: gray;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #09f;
+            height: 30px;
+            width: 30px;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        textarea, button {
+            margin-top: 10px;
+        }
+        .feedback {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Prompt the LLM</h1>
+
+    <form id="promptForm">
+        <label for="prompt">Enter your prompt:</label><br>
+        <textarea id="prompt" name="prompt" rows="4" cols="50"></textarea><br>
+
+        <label for="searchDB">Search in DB First:</label>
+        <input type="checkbox" id="searchDB" name="searchDB"><br><br>
+
+        <button type="submit">Submit</button>
+        <div id="loading">
+            <span class="spinner"></span> Processing your request...
+        </div>
+    </form>
+
+    <div class="feedback">
+        <h2>Initial Prompt:</h2>
+        <pre id="initialPrompt"></pre>
+
+        <h2>Final Prompt (After DB Lookup):</h2>
+        <pre id="finalPrompt"></pre>
+
+        <h2>Response:</h2>
+        <div id="response"></div>
+    </div>
+
+    <script>
+        document.getElementById("promptForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const prompt = document.getElementById("prompt").value;
+            const searchDB = document.getElementById("searchDB").checked;
+
+            // Show the loading spinner
+            const loadingDiv = document.getElementById("loading");
+            loadingDiv.style.display = "block";
+
+            // Prepare payload
+            const formData = new FormData();
+            formData.append("prompt", prompt);
+            formData.append("searchDB", searchDB);
+
+            try {
+                const response = await fetch("/prompt", {
+                    method: "POST",
+                    body: formData
+                });
+                const result = await response.json();
+
+                // Update the UI
+                document.getElementById("initialPrompt").innerText = result.initial_prompt || "N/A";
+                document.getElementById("finalPrompt").innerText = result.final_prompt || "N/A";
+                document.getElementById("response").innerText = result.response || "No response.";
+
+            } catch (err) {
+                console.error("Error:", err);
+                document.getElementById("response").innerText = "An error occurred.";
+            } finally {
+                // Hide the loading spinner
+                loadingDiv.style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>
