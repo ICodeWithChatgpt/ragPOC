@@ -30,6 +30,8 @@ def main():
     print(result)
     if result:
         normalized_content = result.get("normalized_version", "")
+        print("\nNormalized content:")
+        print(normalized_content)
         vectorized_content = generate_embedding(normalized_content)
 
         store_in_db(

@@ -35,7 +35,7 @@ def process_with_openai(content):
 
            ### Example Response:
            {{
-               "metadata": "Title: The history of artificial intelligence in healthcare, SourceType: Blog, URL: https://example.com/article",
+               "metadata": "Title: The history of artificial intelligence in healthcare, SourceType: Blog",
                "tags": "healthcare, artificial intelligence, technology, history",
                "summary": "This article discusses the evolution of AI technologies in the healthcare sector, including their applications and impact on patient care.",
                "normalized_version": "the history of artificial intelligence in healthcare discusses the evolution of ai technologies in the healthcare sector including their applications and impact on patient care"

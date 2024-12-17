@@ -21,7 +21,6 @@ def cosine_similarity(vec1, vec2):
     return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
 
 # Function: Search Vectorized Content
-# Function: Search Vectorized Content
 def search_vectorized_content(query):
     """Search DB for content matching the query using semantic similarity."""
     query_embedding = generate_embedding(query)
@@ -47,7 +46,7 @@ def search_vectorized_content(query):
 
             # Threshold for relevance (adjust as needed)
             if similarity > 0.75:
-                relevant_context.append(f"Tags: {tags}, Summary: {summary}, Similarity: {similarity:.2f}")
+                relevant_context.append(f" Similarity: {similarity:.2f}, Tags: {tags}, Summary: {summary}")
         except Exception as e:
             print(f"Error processing vectorized content: {e}")
             continue

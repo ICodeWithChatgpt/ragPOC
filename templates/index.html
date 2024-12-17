@@ -99,5 +99,40 @@
             }
         });
     </script>
+<div id="results"></div>
+
+<script>
+  // Function to update the results UI with the retrieved context and similarity scores
+  function updateResults(data) {
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = '';
+
+    if (data && data.length > 0) {
+      data.forEach(item => {
+        const resultDiv = document.createElement('div');
+        resultDiv.classList.add('result');
+
+        // Display tags, summary, and similarity score
+        const tagsDiv = document.createElement('p');
+        tagsDiv.textContent = `Tags: ${item.tags}`;
+
+        const summaryDiv = document.createElement('p');
+        summaryDiv.textContent = `Summary: ${item.summary}`;
+
+        const scoreDiv = document.createElement('p');
+        scoreDiv.textContent = `Similarity Score: ${item.similarity.toFixed(3)}`;
+
+        resultDiv.appendChild(tagsDiv);
+        resultDiv.appendChild(summaryDiv);
+        resultDiv.appendChild(scoreDiv);
+
+        resultsDiv.appendChild(resultDiv);
+      });
+    } else {
+      resultsDiv.innerHTML = '<p>No relevant content found.</p>';
+    }
+  }
+</script>
+
 </body>
 </html>
