@@ -25,8 +25,11 @@ def process_with_openai(content):
                - Specify the source type, e.g., 'Blog', 'News Article', 'Research Paper'.
 
            2. **tags**: Provide comma-separated tags to categorize the content. Use concise, relevant terms.
-           3. **summary**: Write a brief and coherent summary of the content.
-           4. **normalized_version**: Normalize the content into a clean, lowercased version suitable for vectorization. Remove unnecessary formatting, special characters, and excessive whitespace.
+           3. **summary**: Write a brief and coherent summary of the content in 1 or 2 sentences. Always in 3rd person and present tense. Just a clinical description.
+           4. **normalized_version**: Normalize ONLY the relevant content of the site, into a clean, lowercased version suitable for vectorization. 
+           Remove unnecessary formatting, special characters, and excessive whitespace.
+           Also ensure the text is concise**: The normalized content should be a clean, meaningful version of the original text, without any extraneous content. But without losing the meaning.
+
 
            ### Rules:
            - The response must be valid JSON. Do not include any other text outside the JSON.
@@ -49,8 +52,17 @@ def process_with_openai(content):
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}]
         )
+        print("Raw Response from OpenAI:")
+        print(response)
+        print("--------------------")
         result = response.choices[0].message.content
-        return parse_openai_response(result)
+        print("Result after choosing only the content:")
+        print(result)
+        print("--------------------")
+        final = parse_openai_response(result)
+        print("Final Result after parsing:")
+        print(final)
+        return final
     except Exception as e:
         print(f"Error processing with OpenAI: {e}")
         return None
@@ -70,6 +82,9 @@ def parse_openai_response(raw_content):
 def generate_embedding(text):
     """Generate an embedding for the given text using OpenAI's embedding model."""
     try:
+        # Log the content being vectorized
+        print(f"Vectorizing content: {text[:200]}...")  # Log the first X characters of the content
+
         response = openai.embeddings.create(
             model="text-embedding-ada-002",
             input=text
