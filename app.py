@@ -42,6 +42,7 @@ def search_vectorized_content(query):
         try:
             # Load the vectorized content (stored as JSON)
             vectorized_content = json.loads(vectorized_content_json)
+            print(f"Vectorized content loaded: {len(vectorized_content)} vectors")
             similarity = cosine_similarity(query_embedding, vectorized_content)
 
             # Threshold for relevance (adjust as needed)
