@@ -5,7 +5,7 @@ import openai
 import os
 import json
 from dotenv import load_dotenv
-
+import textwrap
 from openai_utils import generate_embedding
 
 # Load environment variables
@@ -32,22 +32,28 @@ def search_vectorized_content(query):
     cursor = conn.cursor()
 
     # Fetch all vectorized content from the database
-    cursor.execute("SELECT tags, summary, vectorized_content FROM content")
+    cursor.execute("SELECT tags, summary, normalized_content, vectorized_content FROM content")
     results = cursor.fetchall()
     conn.close()
 
     relevant_context = []
     for row in results:
-        tags, summary, vectorized_content_json = row
+        tags, summary, normalized_content, vectorized_content_json = row
         try:
             # Load the vectorized content (stored as JSON)
             vectorized_content = json.loads(vectorized_content_json)
             print(f"Vectorized content loaded: {len(vectorized_content)} vectors")
-            similarity = cosine_similarity(query_embedding, vectorized_content)
 
-            # Threshold for relevance (adjust as needed)
-            if similarity > 0.75:
-                relevant_context.append(f" Similarity: {similarity:.2f}, Tags: {tags}, Summary: {summary}")
+            # Split normalized content into smaller chunks
+            chunks = textwrap.wrap(normalized_content, width=250)  # Adjust width as needed
+            for chunk in chunks:
+                chunk_embedding = generate_embedding(chunk)
+                similarity = cosine_similarity(query_embedding, chunk_embedding)
+
+                # Threshold for relevance (adjust as needed)
+                if similarity > 0.75:
+                    relevant_context.append(
+                        f" Similarity: {similarity:.2f}, Tags: {tags}, Summary: {summary}, Normalized Content: {chunk}")
         except Exception as e:
             print(f"Error processing vectorized content: {e}")
             continue

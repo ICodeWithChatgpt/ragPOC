@@ -28,7 +28,7 @@ def process_with_openai(content):
            3. **summary**: Write a brief and coherent summary of the content in 1 or 2 sentences. Always in 3rd person and present tense. Just a clinical description.
            4. **normalized_version**: Normalize ONLY the relevant content of the site, into a clean, lowercased version suitable for vectorization. 
            Remove unnecessary formatting, special characters, and excessive whitespace.
-           Also ensure the text is concise**: The normalized content should be a clean, meaningful version of the original text, without any extraneous content. But without losing the meaning.
+           Normalize this content fully without skipping sections. Remove formatting and redundant words but retain all key sentences and structure.
 
 
            ### Rules:
@@ -41,7 +41,8 @@ def process_with_openai(content):
                "metadata": "Title: The history of artificial intelligence in healthcare, SourceType: Blog",
                "tags": "healthcare, artificial intelligence, technology, history",
                "summary": "This article discusses the evolution of AI technologies in the healthcare sector, including their applications and impact on patient care.",
-               "normalized_version": "the history of artificial intelligence in healthcare discusses the evolution of ai technologies in the healthcare sector including their applications and impact on patient care"
+               "raw_content": "The history of artificial intelligence in healthcare... is filled with discussions of the evolution of AI technologies in the healthcare sector, including their applications and impact on patient care.",
+               "normalized_version": "the history of artificial intelligence in healthcare is filled with discusses of the evolution of ai technologies in the healthcare sector including their applications and impact on patient care"
            }}
 
            ### Content:
