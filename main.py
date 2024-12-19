@@ -25,6 +25,8 @@ def main():
     else:
         raw_content = input_data
 
+    print("\nRaw content extracted:")
+    print(raw_content)
     print("\nProcessing content with OpenAI...")
     result = process_with_openai(raw_content)
     print("Raw content:")

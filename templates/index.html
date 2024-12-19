@@ -27,8 +27,14 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        textarea, button {
-            margin-top: 10px;
+         textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
         }
         .feedback {
             margin: 20px 0;
@@ -36,31 +42,55 @@
     </style>
 </head>
 <body>
-    <h1>Prompt the LLM</h1>
-
+    <h1>Prompt Interface</h1>
     <form id="promptForm">
-        <label for="prompt">Enter your prompt:</label><br>
-        <textarea id="prompt" name="prompt" rows="4" cols="50"></textarea><br>
-
-        <label for="searchDB">Search in DB First:</label>
-        <input type="checkbox" id="searchDB" name="searchDB"><br><br>
-
-        <button type="submit">Submit</button>
-        <div id="loading">
-            <span class="spinner"></span> Processing your request...
-        </div>
+        <label for="prompt">Enter your prompt:</label>
+        <textarea id="prompt" name="prompt"></textarea>
+        <br>
+        <input type="checkbox" id="searchDB" name="searchDB">
+        <label for="searchDB">Search DB first</label>
+        <br><br>
+        <button type="button" onclick="submitPrompt()">Submit</button>
     </form>
-
-    <div class="feedback">
-        <h2>Initial Prompt:</h2>
-        <pre id="initialPrompt"></pre>
-
-        <h2>Final Prompt (After DB Lookup):</h2>
-        <pre id="finalPrompt"></pre>
-
-        <h2>Response:</h2>
-        <div id="response"></div>
+      <div id="loading">
+        <div class="spinner"></div> Loading...
     </div>
+    <h2>Initial Prompt</h2>
+    <textarea id="initialPrompt" readonly></textarea>
+    <h2>Final Prompt</h2>
+    <textarea id="finalPrompt" readonly></textarea>
+    <h2>Response</h2>
+    <textarea id="response" readonly></textarea>
+
+    <script>
+        function submitPrompt() {
+            const prompt = document.getElementById('prompt').value;
+            const searchDB = document.getElementById('searchDB').checked;
+
+            document.getElementById('loading').style.display = 'block';
+
+            fetch('/prompt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ prompt, searchDB })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('initialPrompt').value = data.initial_prompt;
+                document.getElementById('finalPrompt').value = data.final_prompt;
+                document.getElementById('response').value = data.response;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                // Hide the loading spinner
+                document.getElementById('loading').style.display = 'none';
+            });
+        }
+    </script>
 
     <script>
         document.getElementById("promptForm").addEventListener("submit", async function (e) {

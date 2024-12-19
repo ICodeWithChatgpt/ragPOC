@@ -1,69 +1,81 @@
+import textwrap
 import openai
 import json
 
 def process_with_openai(content):
     """Send content to OpenAI API for processing."""
     try:
-        prompt = f"""
-           You are tasked with analyzing the following content and returning a JSON object with the required fields. 
-           The response **must** strictly follow the JSON structure provided below. 
-           The keys must appear exactly as shown, and no additional keys or extra text should be included.
+        # Extract metadata and tags from the entire content first
+        metadata_prompt = f"""
+        You are tasked with analyzing the following content and returning a JSON object with the required fields.
+        The response **must** strictly follow the JSON structure provided below.
+        The keys must appear exactly as shown, and no additional keys or extra text should be included.
 
-           The JSON structure is as follows:
-           {{
-               "metadata": "Title: Example Title, Author: Example Author Name, SourceType: Example SourceType",
-               "tags": "Example Tags",
-               "summary": "Example Summary",
-               "normalized_version": "Normalized version of the content suitable for vectorization"
-           }}
+        The JSON structure is as follows:
+        {{
+            "metadata": "Title: Example Title, Author: Example Author Name, SourceType: Example SourceType",
+            "tags": "Example Tags",
+            "summary": "Example Summary"
+        }}
 
-           ### Instructions:
-           1. **metadata**: Provide relevant metadata about the content, such as title, author, and source type. 
-               - If no title or heading exists, create one based on the content itself.
-               - Avoid generic phrases like 'Content from a website' or 'Scraped from [source]'.
-               - Include the author's name if available.
-               - Specify the source type, e.g., 'Blog', 'News Article', 'Research Paper'.
+        ### Instructions:
+        1. **metadata**: Provide relevant metadata about the content, such as title, author, and source type.
+            - If no title or heading exists, create one based on the content itself.
+            - Avoid generic phrases like 'Content from a website' or 'Scraped from [source]'.
+            - Include the author's name if available.
+            - Specify the source type, e.g., 'Blog', 'News Article', 'Research Paper'.
 
-           2. **tags**: Provide comma-separated tags to categorize the content. Use concise, relevant terms.
-           3. **summary**: Write a brief and coherent summary of the content in 1 or 2 sentences. Always in 3rd person and present tense. Just a clinical description.
-           4. **normalized_version**: Normalize ONLY the relevant content of the site, into a clean, lowercased version suitable for vectorization. 
-           Remove unnecessary formatting, special characters, and excessive whitespace.
-           Normalize this content fully without skipping sections. Remove formatting and redundant words but retain all key sentences and structure.
+        2. **tags**: Provide comma-separated tags to categorize the content. Use concise, relevant terms.
+        3. **summary**: Write a brief and coherent summary of the content in 1 or 2 sentences. Always in 3rd person and present tense. Just a clinical description.
 
+        ### Content:
+        {content}
+        """
 
-           ### Rules:
-           - The response must be valid JSON. Do not include any other text outside the JSON.
-           - Avoid generic metadata or tags like 'website content' or 'scraped text'. Be specific.
-           - Ensure all fields are filled out properly.
-
-           ### Example Response:
-           {{
-               "metadata": "Title: The history of artificial intelligence in healthcare, SourceType: Blog",
-               "tags": "healthcare, artificial intelligence, technology, history",
-               "summary": "This article discusses the evolution of AI technologies in the healthcare sector, including their applications and impact on patient care.",
-               "raw_content": "The history of artificial intelligence in healthcare... is filled with discussions of the evolution of AI technologies in the healthcare sector, including their applications and impact on patient care.",
-               "normalized_version": "the history of artificial intelligence in healthcare is filled with discusses of the evolution of ai technologies in the healthcare sector including their applications and impact on patient care"
-           }}
-
-           ### Content:
-           {content}
-           """
-
-        response = openai.chat.completions.create(
+        metadata_response = openai.chat.completions.create(
             model="gpt-4",
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": metadata_prompt}]
         )
-        print("Raw Response from OpenAI:")
-        print(response)
-        print("--------------------")
-        result = response.choices[0].message.content
-        print("Result after choosing only the content:")
-        print(result)
-        print("--------------------")
-        final = parse_openai_response(result)
-        print("Final Result after parsing:")
-        print(final)
-        return final
+        metadata_result = json.loads(metadata_response.choices[0].message.content)
+
+        print(content)
+        print("Metadata and tags extracted successfully.")
+        print("Metadata:", metadata_result.get("metadata"))
+        print("Summary:", metadata_result.get("summary"))
+        print("Tags:", metadata_result.get("tags"))
+        # Split raw content into smaller chunks for normalization
+        chunks = textwrap.wrap(content, width=2000)  # Adjust width as needed
+        print(chunks)
+        normalized_content = []
+
+        print("Starting the content normalization process...")
+        for chunk in chunks:
+            print(chunk)
+            normalization_prompt = f"""
+            Normalize the following content into a clean, lowercased version suitable for vectorization.
+            Remove unnecessary formatting, special characters, and excessive whitespace.
+            Normalize this content fully without skipping sections. Remove formatting and redundant words but retain all key sentences and structure.
+
+            ### Content:
+            {chunk}
+            """
+
+            response = openai.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": normalization_prompt}]
+            )
+            result = response.choices[0].message.content
+            normalized_content.append(result)
+
+        # Combine all normalized content chunks
+        combined_normalized_content = " ".join(normalized_content)
+        print("Content normalized successfully.")
+        return {
+            "metadata": metadata_result.get("metadata"),
+            "tags": metadata_result.get("tags"),
+            "summary": metadata_result.get("summary"),
+            "normalized_version": combined_normalized_content
+        }
     except Exception as e:
         print(f"Error processing with OpenAI: {e}")
         return None
