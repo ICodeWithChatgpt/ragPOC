@@ -6,7 +6,7 @@ def process_with_openai(content):
     """Send content to OpenAI API for processing."""
     try:
         # Extract metadata and tags from the entire content first
-        metadata_prompt = f"""
+        instructions = f"""
         You are tasked with analyzing the following content and returning a JSON object with the required fields.
         The response **must** strictly follow the JSON structure provided below.
         The keys must appear exactly as shown, and no additional keys or extra text should be included.
@@ -27,14 +27,19 @@ def process_with_openai(content):
 
         2. **tags**: Provide comma-separated tags to categorize the content. Use concise, relevant terms.
         3. **summary**: Write a brief and coherent summary of the content in 1 or 2 sentences. Always in 3rd person and present tense. Just a clinical description.
+        """
 
+        metadata_prompt = f"""
         ### Content:
-        {content}
+        {content[:2000]} #Limit the content for the first 2000 characters 
         """
 
         metadata_response = openai.chat.completions.create(
             model="gpt-4",
-            messages=[{"role": "user", "content": metadata_prompt}]
+            messages=[
+                {"role": "system", "content": instructions},
+                {"role": "user", "content": metadata_prompt}
+            ]
         )
         metadata_result = json.loads(metadata_response.choices[0].message.content)
 
@@ -62,7 +67,9 @@ def process_with_openai(content):
 
             response = openai.chat.completions.create(
                 model="gpt-4",
-                messages=[{"role": "user", "content": normalization_prompt}]
+                messages=[
+                    {"role": "user", "content": normalization_prompt}
+                ]
             )
             result = response.choices[0].message.content
             normalized_content.append(result)

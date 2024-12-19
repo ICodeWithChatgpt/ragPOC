@@ -6,7 +6,10 @@ import os
 import json
 from dotenv import load_dotenv
 import textwrap
-from openai_utils import generate_embedding
+
+from database import store_in_db, setup_database, add_normalized_content_column
+from openai_utils import generate_embedding, process_with_openai
+from scraper import scrape_url
 
 # Load environment variables
 load_dotenv(".env.local")
@@ -130,6 +133,48 @@ def handle_prompt():
         "response": response_text
     })
 
+# Route: Fetch Content
+@app.route("/fetch-content", methods=["POST"])
+def fetch_content():
+    data = request.get_json()
+    input_data = data.get("input_data", "").strip()
+
+    url = None
+    if input_data.startswith("http"):
+        url = input_data
+        raw_content = scrape_url(url)
+        if not raw_content:
+            return jsonify({"error": "Failed to scrape URL."}), 400
+    else:
+        raw_content = input_data
+
+    return jsonify({"raw_content": raw_content})
+
+# Route: Process Content
+@app.route("/process-content", methods=["POST"])
+def process_content():
+    data = request.get_json()
+    edited_content = data.get("edited_content", "").strip()
+
+    result = process_with_openai(edited_content)
+    if result:
+        normalized_content = result.get("normalized_version", "")
+        vectorized_content = generate_embedding(normalized_content)
+
+        store_in_db(
+            url=None,
+            raw_content=edited_content,
+            metadata=result.get("metadata"),
+            tags=result.get("tags"),
+            summary=result.get("summary"),
+            normalized_content=normalized_content,
+            vectorized_content=vectorized_content
+        )
+        return jsonify(result)
+    else:
+        return jsonify({"error": "Failed to process content."}), 500
 
 if __name__ == "__main__":
+    setup_database()
+    add_normalized_content_column()
     app.run(debug=True)

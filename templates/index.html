@@ -42,6 +42,50 @@
     </style>
 </head>
 <body>
+<h1>Content Processor</h1>
+    <form id="content-form">
+        <label for="input-data">Enter a URL or paste raw content below:</label><br>
+        <textarea id="input-data" name="input-data" rows="4" cols="50"></textarea><br><br>
+        <button type="button" onclick="fetchContent()">Fetch Content</button><br><br>
+        <label for="edited-content">Edit the content below:</label><br>
+        <textarea id="edited-content" name="edited-content" rows="10" cols="50"></textarea><br><br>
+        <button type="button" onclick="processContent()">Process Content</button>
+    </form>
+    <div id="result"></div>
+<script>
+        function fetchContent() {
+            const inputData = document.getElementById('input-data').value.trim();
+            fetch('/fetch-content', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ input_data: inputData }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('edited-content').value = data.raw_content;
+            })
+            .catch(error => console.error('Error fetching content:', error));
+        }
+
+        function processContent() {
+            const editedContent = document.getElementById('edited-content').value.trim();
+            fetch('/process-content', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ edited_content: editedContent }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+            })
+            .catch(error => console.error('Error processing content:', error));
+        }
+    </script>
+
     <h1>Prompt Interface</h1>
     <form id="promptForm">
         <label for="prompt">Enter your prompt:</label>
