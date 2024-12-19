@@ -59,13 +59,16 @@ Use case: This approach avoids hallucinations and ensures generated responses ar
    - Add your API key to the `.env` file.
 
 ## 🤖 How It Works
-- In order to store content in the DB, run the main.py file.
+- Run the app.py file to start the server.
+  - Go to http://127.0.0.1:5000/ in your browser.
   - It accepts both Raw text and URL as input.
   - The site or text is scraped
+  - We are able to edit the content before sending it for normalization
   - Metadata is extracted
   - Content is cleaned and vectorized
+  - The vectorized content is stored in the DB
 
-- In order to perform a search, run the app.py file.
+- You can perform a search to the LLM 
   - It accepts a query as input.
   - The query is vectorized
   - If the button "Search in DB first" is checked, context is retrieved from the DB.

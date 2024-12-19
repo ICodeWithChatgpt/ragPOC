@@ -1,13 +1,8 @@
 from flask import Flask, request, render_template, jsonify
-import sqlite3
-import numpy as np
 import openai
 import os
-import json
 from dotenv import load_dotenv
-import textwrap
-
-from database import store_in_db, setup_database, add_normalized_content_column
+from database import store_in_db, setup_database, add_normalized_content_column, search_vectorized_content
 from openai_utils import generate_embedding, process_with_openai
 from scraper import scrape_url
 
@@ -18,65 +13,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 app = Flask(__name__)
 DB_NAME = "content_store.db"
 
-# Helper: Compute Cosine Similarity
-def cosine_similarity(vec1, vec2):
-    """Calculate cosine similarity between two vectors."""
-    return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
-
-# Function: Search Vectorized Content
-def search_vectorized_content(query):
-    """Search DB for content matching the query using semantic similarity."""
-    query_embedding = generate_embedding(query)
-    if not query_embedding:
-        print("Failed to generate query embedding.")
-        return None
-
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-
-    # Fetch all metadata and vectorized content from the database
-    cursor.execute("SELECT id, tags, summary, normalized_content, vectorized_content FROM content")
-    results = cursor.fetchall()
-    conn.close()
-
-    relevant_context = []
-    for row in results:
-        doc_id, tags, summary, normalized_content, vectorized_content_json = row
-        metadata = f"{tags} {summary}"
-        metadata_embedding = generate_embedding(metadata)
-        metadata_similarity = cosine_similarity(query_embedding, metadata_embedding)
-
-        # Print the metadata similarity
-        print(f"Document ID: {doc_id}, Metadata Similarity: {metadata_similarity:.2f}")
-
-        # Threshold for metadata relevance (adjust as needed)
-        if metadata_similarity > 0.75:  # Adjust threshold as needed
-            try:
-                # Load the vectorized content (stored as JSON)
-                vectorized_content = json.loads(vectorized_content_json)
-                print(f"Vectorized content loaded: {len(vectorized_content)} vectors")
-
-                # Split normalized content into smaller chunks
-                chunks = textwrap.wrap(normalized_content, width=250)  # Adjust width as needed
-                candidate_sentences = []
-                for chunk in chunks:
-                    chunk_embedding = generate_embedding(chunk)
-                    similarity = cosine_similarity(query_embedding, chunk_embedding)
-
-                    # Threshold for relevance (adjust as needed)
-                    if similarity > 0.75:
-                        candidate_sentences.append(f"Similarity: {similarity:.2f}, Sentence: {chunk}")
-
-                if candidate_sentences:
-                    relevant_context.append(
-                        f"Tags: {tags}, Summary: {summary}\n" + "\n".join(candidate_sentences))
-            except Exception as e:
-                print(f"Error processing vectorized content: {e}")
-                continue
-
-    if relevant_context:
-        return "\n\n".join(relevant_context)
-    return None
 # Helper: Query OpenAI API
 def query_openai(final_prompt):
     """Query OpenAI LLM."""
@@ -155,11 +91,14 @@ def fetch_content():
 def process_content():
     data = request.get_json()
     edited_content = data.get("edited_content", "").strip()
+    metadata_similarity = float(data.get("metadata_similarity", 0.80))
+    vectorized_similarity = float(data.get("vectorized_similarity", 0.80))
 
     result = process_with_openai(edited_content)
     if result:
         normalized_content = result.get("normalized_version", "")
         vectorized_content = generate_embedding(normalized_content)
+
 
         store_in_db(
             url=None,

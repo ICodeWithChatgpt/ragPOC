@@ -43,7 +43,7 @@
 </head>
 <body>
 <h1>Content Processor</h1>
-    <form id="content-form">
+ <form id="content-form">
         <label for="input-data">Enter a URL or paste raw content below:</label><br>
         <textarea id="input-data" name="input-data" rows="4" cols="50"></textarea><br><br>
         <button type="button" onclick="fetchContent()">Fetch Content</button><br><br>
@@ -94,19 +94,43 @@
         <input type="checkbox" id="searchDB" name="searchDB">
         <label for="searchDB">Search DB first</label>
         <br><br>
+
+        <label for="metadata-similarity">Metadata Similarity Threshold:</label>
+        <input type="range" id="metadata-similarity" name="metadata-similarity" min="0" max="1" step="0.01" value="0.80">
+        <span id="metadata-similarity-value">0.80</span><br><br>
+
+        <label for="vectorized-similarity">Vectorized Similarity Threshold:</label>
+        <input type="range" id="vectorized-similarity" name="vectorized-similarity" min="0" max="1" step="0.01" value="0.80">
+        <span id="vectorized-similarity-value">0.80</span><br><br>
+
         <button type="button" onclick="submitPrompt()">Submit</button>
     </form>
       <div id="loading">
         <div class="spinner"></div> Loading...
     </div>
-    <h2>Initial Prompt</h2>
+    <h2>User´s initial Prompt </h2>
     <textarea id="initialPrompt" readonly></textarea>
-    <h2>Final Prompt</h2>
+    <h2>Augmented Prompt </h2>
     <textarea id="finalPrompt" readonly></textarea>
-    <h2>Response</h2>
+    <h2>Response from the LLM</h2>
     <textarea id="response" readonly></textarea>
 
     <script>
+        // Ensure the IDs match the input elements
+    document.getElementById('metadata-similarity').addEventListener('input', function() {
+        document.getElementById('metadata-similarity-value').innerText = this.value;
+    });
+
+    document.getElementById('vectorized-similarity').addEventListener('input', function() {
+        document.getElementById('vectorized-similarity-value').innerText = this.value;
+    });
+
+    // Enable or disable sliders based on the checkbox state
+    document.getElementById('searchDB').addEventListener('change', function() {
+        const isChecked = this.checked;
+        document.getElementById('metadata-similarity').disabled = !isChecked;
+        document.getElementById('vectorized-similarity').disabled = !isChecked;
+    });
         function submitPrompt() {
             const prompt = document.getElementById('prompt').value;
             const searchDB = document.getElementById('searchDB').checked;
