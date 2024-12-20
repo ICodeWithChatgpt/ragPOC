@@ -10,7 +10,7 @@ def clean_text(text):
     text = text.strip()  # Strip leading/trailing whitespace
     return text
 
-
+#TODO: Improve scraping by adding Puppeteer???
 def scrape_url(url):
     """Scrape a webpage and return cleaner text content."""
     try:

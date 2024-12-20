@@ -7,7 +7,6 @@ from openai_utils import generate_embedding
 import numpy as np
 
 DB_NAME = "content_store.db"
-# database.py
 
 def setup_database():
     """Create the database and necessary table if not exists."""
@@ -28,8 +27,6 @@ def setup_database():
     """)
     conn.commit()
     conn.close()
-
-# database.py
 
 def add_normalized_content_column():
     """Add normalized_content column to the content table if it doesn't exist."""
