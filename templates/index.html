@@ -4,119 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLM Prompt Page</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        #loading {
-            display: none;
-            margin: 10px 0;
-            font-style: italic;
-            color: gray;
-        }
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #09f;
-            height: 30px;
-            width: 30px;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-         textarea {
-            width: 100%;
-            height: 150px;
-            margin-bottom: 20px;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-        }
-        .feedback {
-            margin: 20px 0;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-<h1>Content Processor</h1>
- <form id="content-form">
-        <label for="input-data">Enter a URL or paste raw content below:</label><br>
-        <textarea id="input-data" name="input-data" rows="4" cols="50"></textarea><br><br>
-        <button type="button" onclick="fetchContent()">Fetch Content</button><br><br>
-        <label for="edited-content">Edit the content below:</label><br>
-        <textarea id="edited-content" name="edited-content" rows="10" cols="50"></textarea><br><br>
-        <button type="button" onclick="processContent()">Process Content</button>
-    </form>
-    <div id="result"></div>
-<script>
-        function fetchContent() {
-            const inputData = document.getElementById('input-data').value.trim();
-            fetch('/fetch-content', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ input_data: inputData }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('edited-content').value = data.raw_content;
-            })
-            .catch(error => console.error('Error fetching content:', error));
-        }
-
-        function processContent() {
-            const editedContent = document.getElementById('edited-content').value.trim();
-            fetch('/process-content', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ edited_content: editedContent }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('result').innerText = JSON.stringify(data, null, 2);
-            })
-            .catch(error => console.error('Error processing content:', error));
-        }
-    </script>
-
-    <h1>Prompt Interface</h1>
-    <form id="promptForm">
-        <label for="prompt">Enter your prompt:</label>
-        <textarea id="prompt" name="prompt"></textarea>
-        <br>
-        <input type="checkbox" id="searchDB" name="searchDB">
-        <label for="searchDB">Search DB first</label>
-        <br><br>
-
-        <label for="metadata-similarity">Metadata Similarity Threshold:</label>
-        <input type="range" id="metadata-similarity" name="metadata-similarity" min="0" max="1" step="0.01" value="0.80">
-        <span id="metadata-similarity-value">0.80</span><br><br>
-
-        <label for="vectorized-similarity">Vectorized Similarity Threshold:</label>
-        <input type="range" id="vectorized-similarity" name="vectorized-similarity" min="0" max="1" step="0.01" value="0.80">
-        <span id="vectorized-similarity-value">0.80</span><br><br>
-
-        <button type="button" onclick="submitPrompt()">Submit</button>
-    </form>
-      <div id="loading">
-        <div class="spinner"></div> Loading...
+<div class="container">
+    <div class="content">
+        <h1>Content Processor</h1>
+        <form id="content-form">
+            <label for="input-data">Enter a URL or paste raw content below:</label><br>
+            <textarea id="input-data" placeholder="URL / RAW Text" name="input-data"></textarea><br><br>
+            <button type="button" onclick="fetchContent()">Fetch Content</button><br><br>
+            <label for="edited-content">Edit the content below:</label><br>
+            <textarea id="edited-content" placeholder="Final content comes here..." name="edited-content"></textarea><br><br>
+            <button type="button" onclick="processContent()">Process Content</button>
+        </form>
+        <div id="result"></div>
     </div>
-    <h2>User´s initial Prompt </h2>
-    <textarea id="initialPrompt" readonly></textarea>
-    <h2>Augmented Prompt </h2>
-    <textarea id="finalPrompt" readonly></textarea>
-    <h2>Response from the LLM</h2>
-    <textarea id="response" readonly></textarea>
+    <div class="content">
+        <h1>Prompt Interface</h1>
+        <form id="promptForm">
+            <label for="prompt"> Ask the model!</label>
+            <textarea id="prompt" placeholder="Enter your prompt here..." name="prompt"></textarea>
+            <br>
+            <input type="checkbox" id="searchDB" name="searchDB">
+            <label for="searchDB">Search DB first</label>
+            <br><br>
 
-    <script>
-        // Ensure the IDs match the input elements
+            <label for="metadata-similarity">Metadata Similarity Threshold:</label>
+            <input type="range" id="metadata-similarity" name="metadata-similarity" min="0" max="1" step="0.01" value="0.80" disabled>
+            <span id="metadata-similarity-value">0.80</span><br><br>
+
+            <label for="vectorized-similarity">Vectorized Similarity Threshold:</label>
+            <input type="range" id="vectorized-similarity" name="vectorized-similarity" min="0" max="1" step="0.01" value="0.80" disabled>
+            <span id="vectorized-similarity-value">0.80</span><br><br>
+
+            <button type="button" onclick="submitPrompt()">Submit</button>
+        </form>
+        <div id="loading">
+            <div class="spinner"></div>
+        </div>
+        <h2>User´s initial Prompt </h2>
+        <textarea id="initialPrompt" readonly></textarea>
+        <h2>Augmented Prompt </h2>
+        <textarea id="finalPrompt" readonly></textarea>
+        <h2>Response from the LLM</h2>
+        <textarea id="response" readonly></textarea>
+    </div>
+</div>
+<script>
+    // JavaScript functions remain the same
     document.getElementById('metadata-similarity').addEventListener('input', function() {
         document.getElementById('metadata-similarity-value').innerText = this.value;
     });
@@ -125,112 +61,135 @@
         document.getElementById('vectorized-similarity-value').innerText = this.value;
     });
 
-    // Enable or disable sliders based on the checkbox state
     document.getElementById('searchDB').addEventListener('change', function() {
         const isChecked = this.checked;
         document.getElementById('metadata-similarity').disabled = !isChecked;
         document.getElementById('vectorized-similarity').disabled = !isChecked;
     });
-        function submitPrompt() {
-            const prompt = document.getElementById('prompt').value;
-            const searchDB = document.getElementById('searchDB').checked;
 
-            document.getElementById('loading').style.display = 'block';
+    // Initialize the sliders based on the initial state of the checkbox
+    window.onload = function() {
+        const isChecked = document.getElementById('searchDB').checked;
+        document.getElementById('metadata-similarity').disabled = !isChecked;
+        document.getElementById('vectorized-similarity').disabled = !isChecked;
+    };
 
-            fetch('/prompt', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ prompt, searchDB })
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('initialPrompt').value = data.initial_prompt;
-                document.getElementById('finalPrompt').value = data.final_prompt;
-                document.getElementById('response').value = data.response;
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            })
-            .finally(() => {
-                // Hide the loading spinner
-                document.getElementById('loading').style.display = 'none';
-            });
-        }
-    </script>
+    function submitPrompt() {
+        const prompt = document.getElementById('prompt').value;
+        const searchDB = document.getElementById('searchDB').checked;
 
-    <script>
-        document.getElementById("promptForm").addEventListener("submit", async function (e) {
-            e.preventDefault();
+        document.getElementById('loading').style.display = 'block';
 
-            const prompt = document.getElementById("prompt").value;
-            const searchDB = document.getElementById("searchDB").checked;
-
-            // Show the loading spinner
-            const loadingDiv = document.getElementById("loading");
-            loadingDiv.style.display = "block";
-
-            // Prepare payload
-            const formData = new FormData();
-            formData.append("prompt", prompt);
-            formData.append("searchDB", searchDB);
-
-            try {
-                const response = await fetch("/prompt", {
-                    method: "POST",
-                    body: formData
-                });
-                const result = await response.json();
-
-                // Update the UI
-                document.getElementById("initialPrompt").innerText = result.initial_prompt || "N/A";
-                document.getElementById("finalPrompt").innerText = result.final_prompt || "N/A";
-                document.getElementById("response").innerText = result.response || "No response.";
-
-            } catch (err) {
-                console.error("Error:", err);
-                document.getElementById("response").innerText = "An error occurred.";
-            } finally {
-                // Hide the loading spinner
-                loadingDiv.style.display = "none";
-            }
+        fetch('/prompt', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ prompt, searchDB })
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('initialPrompt').value = data.initial_prompt;
+            document.getElementById('finalPrompt').value = data.final_prompt;
+            document.getElementById('response').value = data.response;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            document.getElementById('loading').style.display = 'none';
         });
-    </script>
-<div id="results"></div>
-
-<script>
-  // Function to update the results UI with the retrieved context and similarity scores
-  function updateResults(data) {
-    const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = '';
-
-    if (data && data.length > 0) {
-      data.forEach(item => {
-        const resultDiv = document.createElement('div');
-        resultDiv.classList.add('result');
-
-        // Display tags, summary, and similarity score
-        const tagsDiv = document.createElement('p');
-        tagsDiv.textContent = `Tags: ${item.tags}`;
-
-        const summaryDiv = document.createElement('p');
-        summaryDiv.textContent = `Summary: ${item.summary}`;
-
-        const scoreDiv = document.createElement('p');
-        scoreDiv.textContent = `Similarity Score: ${item.similarity.toFixed(3)}`;
-
-        resultDiv.appendChild(tagsDiv);
-        resultDiv.appendChild(summaryDiv);
-        resultDiv.appendChild(scoreDiv);
-
-        resultsDiv.appendChild(resultDiv);
-      });
-    } else {
-      resultsDiv.innerHTML = '<p>No relevant content found.</p>';
     }
-  }
-</script>
+    document.getElementById("promptForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
 
+        const prompt = document.getElementById("prompt").value;
+        const searchDB = document.getElementById("searchDB").checked;
+
+        const loadingDiv = document.getElementById("loading");
+        loadingDiv.style.display = "block";
+
+        const formData = new FormData();
+        formData.append("prompt", prompt);
+        formData.append("searchDB", searchDB);
+
+        try {
+            const response = await fetch("/prompt", {
+                method: "POST",
+                body: formData
+            });
+            const result = await response.json();
+
+            document.getElementById("initialPrompt").innerText = result.initial_prompt || "N/A";
+            document.getElementById("finalPrompt").innerText = result.final_prompt || "N/A";
+            document.getElementById("response").innerText = result.response || "No response.";
+
+        } catch (err) {
+            console.error("Error:", err);
+            document.getElementById("response").innerText = "An error occurred.";
+        } finally {
+            loadingDiv.style.display = "none";
+        }
+    });
+    function fetchContent() {
+        const inputData = document.getElementById('input-data').value.trim();
+        fetch('/fetch-content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ input_data: inputData }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('edited-content').value = data.raw_content;
+        })
+        .catch(error => console.error('Error fetching content:', error));
+    }
+
+    function processContent() {
+        const editedContent = document.getElementById('edited-content').value.trim();
+        fetch('/process-content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ edited_content: editedContent }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+        })
+        .catch(error => console.error('Error processing content:', error));
+    }
+    function updateResults(data) {
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = '';
+
+        if (data && data.length > 0) {
+            data.forEach(item => {
+                const resultDiv = document.createElement('div');
+                resultDiv.classList.add('result');
+
+                const tagsDiv = document.createElement('p');
+                tagsDiv.textContent = `Tags: ${item.tags}`;
+
+                const summaryDiv = document.createElement('p');
+                summaryDiv.textContent = `Summary: ${item.summary}`;
+
+                const scoreDiv = document.createElement('p');
+                scoreDiv.textContent = `Similarity Score: ${item.similarity.toFixed(3)}`;
+
+                resultDiv.appendChild(tagsDiv);
+                resultDiv.appendChild(summaryDiv);
+                resultDiv.appendChild(scoreDiv);
+
+                resultsDiv.appendChild(resultDiv);
+            });
+        } else {
+            resultsDiv.innerHTML = '<p>No relevant content found.</p>';
+        }
+    }
+</script>
 </body>
 </html>

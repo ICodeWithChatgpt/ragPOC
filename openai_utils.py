@@ -87,8 +87,19 @@ def process_with_openai(content):
         print(f"Error processing with OpenAI: {e}")
         return None
 
+# Helper: Query OpenAI API
+def query_openai(final_prompt):
+    try:
+        response = openai.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": final_prompt}]
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error querying OpenAI: {e}"
+
+ # Helper: Parse OpenAI Response
 def parse_openai_response(raw_content):
-    """Parse OpenAI response and validate fields."""
     try:
         parsed_response = json.loads(raw_content)
         if not all(k in parsed_response for k in ["metadata", "tags", "summary", "normalized_version"]):
@@ -99,8 +110,8 @@ def parse_openai_response(raw_content):
         print(f"Error parsing OpenAI response: {e}")
         return None
 
+# Helper: Generate Embedding
 def generate_embedding(text):
-    """Generate an embedding for the given text using OpenAI's embedding model."""
     try:
         # Log the content being vectorized
         print(f"Vectorizing content: {text[:200]}...")  # Log the first X characters of the content

@@ -5,6 +5,8 @@ import textwrap
 from datetime import datetime
 from openai_utils import generate_embedding
 import numpy as np
+import nltk
+from nltk.tokenize import sent_tokenize
 
 DB_NAME = "content_store.db"
 
@@ -63,6 +65,9 @@ def store_in_db(url, raw_content, metadata, tags, summary, normalized_content, v
 def cosine_similarity(vec1, vec2):
     """Calculate cosine similarity between two vectors."""
     return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+
+# Ensure you have the necessary NLTK data
+nltk.download('punkt')
 
 # Function: Search Vectorized Content
 def search_vectorized_content(query, metadata_similarity_threshold=0.80, vectorized_similarity_threshold=0.80):

@@ -3,7 +3,7 @@ import openai
 import os
 from dotenv import load_dotenv
 from database import store_in_db, setup_database, add_normalized_content_column, search_vectorized_content
-from openai_utils import generate_embedding, process_with_openai
+from openai_utils import generate_embedding, process_with_openai, query_openai
 from scraper import scrape_url
 
 # Load environment variables
@@ -12,19 +12,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 app = Flask(__name__)
 DB_NAME = "content_store.db"
-
-# Helper: Query OpenAI API
-def query_openai(final_prompt):
-    """Query OpenAI LLM."""
-    try:
-        response = openai.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": final_prompt}]
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"Error querying OpenAI: {e}"
-
 
 # Route: Show the Prompt Page
 @app.route("/", methods=["GET"])
@@ -91,8 +78,6 @@ def fetch_content():
 def process_content():
     data = request.get_json()
     edited_content = data.get("edited_content", "").strip()
-    metadata_similarity = float(data.get("metadata_similarity", 0.80))
-    vectorized_similarity = float(data.get("vectorized_similarity", 0.80))
 
     result = process_with_openai(edited_content)
     if result:
