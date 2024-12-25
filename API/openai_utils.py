@@ -77,11 +77,16 @@ def process_with_openai(content):
         # Combine all normalized content chunks
         combined_normalized_content = " ".join(normalized_content)
         print("Content normalized successfully.")
+
+        # Vectorize each chunk separately
+        vectorized_chunks = [generate_embedding(chunk) for chunk in normalized_content]
+
         return {
             "metadata": metadata_result.get("metadata"),
             "tags": metadata_result.get("tags"),
             "summary": metadata_result.get("summary"),
-            "normalized_version": combined_normalized_content
+            "normalized_version": combined_normalized_content,
+            #"vectorized_chunks": vectorized_chunks
         }
     except Exception as e:
         print(f"Error processing with OpenAI: {e}")

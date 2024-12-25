@@ -101,5 +101,4 @@ def handle_prompt():
 
 if __name__ == "__main__":
     db.setup_database()
-    db.add_normalized_content_column()
     app.run(debug=True)
