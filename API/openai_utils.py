@@ -3,7 +3,7 @@ import openai
 import json
 
 def process_with_openai(content):
-    """Send content to OpenAI API for processing."""
+    """Send content to OpenAI API for processing. Only during the content processing phase."""
     try:
         # Extract metadata and tags from the entire content first
         instructions = f"""
@@ -97,18 +97,6 @@ def query_openai(final_prompt):
         return response.choices[0].message.content.strip()
     except Exception as e:
         return f"Error querying OpenAI: {e}"
-
- # Helper: Parse OpenAI Response
-def parse_openai_response(raw_content):
-    try:
-        parsed_response = json.loads(raw_content)
-        if not all(k in parsed_response for k in ["metadata", "tags", "summary", "normalized_version"]):
-            print("Missing fields in OpenAI response.")
-            return None
-        return parsed_response
-    except Exception as e:
-        print(f"Error parsing OpenAI response: {e}")
-        return None
 
 # Helper: Generate Embedding
 def generate_embedding(text):

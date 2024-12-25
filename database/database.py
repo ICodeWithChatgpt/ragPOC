@@ -3,10 +3,10 @@ import hashlib
 import json
 import textwrap
 from datetime import datetime
-from openai_utils import generate_embedding
-import numpy as np
+
+from API.openai_utils import generate_embedding
+from helpers.helper_functions import cosine_similarity
 import nltk
-from nltk.tokenize import sent_tokenize
 
 DB_NAME = "content_store.db"
 
@@ -59,12 +59,6 @@ def store_in_db(url, raw_content, metadata, tags, summary, normalized_content, v
 
     conn.commit()
     conn.close()
-
-
-# Helper: Compute Cosine Similarity
-def cosine_similarity(vec1, vec2):
-    """Calculate cosine similarity between two vectors."""
-    return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
 
 # Ensure you have the necessary NLTK data
 nltk.download('punkt')
