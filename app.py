@@ -47,8 +47,8 @@ def process_content():
     result = process_with_openai(edited_content)
     if result:
         normalized_content = result.get("normalized_version", "")
-        vectorized_content = generate_embedding(normalized_content)
-
+        chunks = result.get("chunks", [])
+        vectorized_chunks = result.get("vectorized_chunks", [])
 
         db.store_in_db(
             url=None,
@@ -57,7 +57,8 @@ def process_content():
             tags=result.get("tags"),
             summary=result.get("summary"),
             normalized_content=normalized_content,
-            vectorized_content=vectorized_content
+            chunks=chunks,
+            vectorized_chunks=vectorized_chunks
         )
         return jsonify(result)
     else:

@@ -17,5 +17,18 @@ def parse_openai_response(raw_content):
 
 # Helper: Compute Cosine Similarity
 def cosine_similarity(vec1, vec2):
-    """Calculate cosine similarity between two vectors."""
-    return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+    """Calculate the cosine similarity between two vectors."""
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+    return np.dot(vec1, vec2) / (norm1 * norm2)
+
+# Helper: truncate embeddings
+def pad_or_truncate_embedding(embedding, target_length):
+    """Pad or truncate the embedding to the target length."""
+    if len(embedding) > target_length:
+        return embedding[:target_length]
+    elif len(embedding) < target_length:
+        return np.pad(embedding, (0, target_length - len(embedding)), 'constant')
+    return embedding

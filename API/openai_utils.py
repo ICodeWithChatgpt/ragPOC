@@ -2,6 +2,9 @@ import textwrap
 import openai
 import json
 
+from helpers.helper_functions import pad_or_truncate_embedding
+
+
 def process_with_openai(content):
     """Send content to OpenAI API for processing. Only during the content processing phase."""
     try:
@@ -31,7 +34,7 @@ def process_with_openai(content):
 
         metadata_prompt = f"""
         ### Content:
-        {content[:2000]} #Limit the content for the first 2000 characters 
+        {content[:2000]} #Limit the content for the first 2000 characters
         """
 
         metadata_response = openai.chat.completions.create(
@@ -48,45 +51,41 @@ def process_with_openai(content):
         print("Metadata:", metadata_result.get("metadata"))
         print("Summary:", metadata_result.get("summary"))
         print("Tags:", metadata_result.get("tags"))
-        # Split raw content into smaller chunks for normalization
-        chunks = textwrap.wrap(content, width=2000)  # Adjust width as needed
+
+        # Normalize the entire content
+        normalization_prompt = f"""
+        Normalize the following content into a clean, lowercased version suitable for vectorization.
+        Remove unnecessary formatting, special characters, and excessive whitespace.
+        Normalize this content fully without skipping sections. Remove formatting and redundant words but retain all key sentences and structure.
+
+        ### Content:
+        {content}
+        """
+
+        response = openai.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "user", "content": normalization_prompt}
+            ]
+        )
+        normalized_content = response.choices[0].message.content
+
+        # Split normalized content into chunks of 1536 tokens
+        tokens = normalized_content.split()
+        chunk_size = 200
+        chunks = [' '.join(tokens[i:i + chunk_size]) for i in range(0, len(tokens), chunk_size)]
         print(chunks)
-        normalized_content = []
 
-        print("Starting the content normalization process...")
-        for chunk in chunks:
-            print(chunk)
-            normalization_prompt = f"""
-            Normalize the following content into a clean, lowercased version suitable for vectorization.
-            Remove unnecessary formatting, special characters, and excessive whitespace.
-            Normalize this content fully without skipping sections. Remove formatting and redundant words but retain all key sentences and structure.
-
-            ### Content:
-            {chunk}
-            """
-
-            response = openai.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "user", "content": normalization_prompt}
-                ]
-            )
-            result = response.choices[0].message.content
-            normalized_content.append(result)
-
-        # Combine all normalized content chunks
-        combined_normalized_content = " ".join(normalized_content)
-        print("Content normalized successfully.")
-
-        # Vectorize each chunk separately
-        vectorized_chunks = [generate_embedding(chunk) for chunk in normalized_content]
+        # Vectorize each chunk separately and ensure the correct dimensions
+        vectorized_chunks = [pad_or_truncate_embedding(generate_embedding(chunk), 1536) for chunk in chunks]
 
         return {
             "metadata": metadata_result.get("metadata"),
             "tags": metadata_result.get("tags"),
             "summary": metadata_result.get("summary"),
-            "normalized_version": combined_normalized_content,
-            #"vectorized_chunks": vectorized_chunks
+            "normalized_version": normalized_content,
+            "chunks": chunks,
+            "vectorized_chunks": vectorized_chunks
         }
     except Exception as e:
         print(f"Error processing with OpenAI: {e}")
