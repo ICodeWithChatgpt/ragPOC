@@ -5,7 +5,7 @@ import json
 from helpers.helper_functions import pad_or_truncate_embedding
 
 
-def process_with_openai(content):
+def process_with_openai(content, metadata_similarity=0.8, vectorized_similarity=0.8):
     """Send content to OpenAI API for processing. Only during the content processing phase."""
     try:
         # Extract metadata and tags from the entire content first
@@ -72,7 +72,7 @@ def process_with_openai(content):
 
         # Split normalized content into chunks of 1536 tokens
         tokens = normalized_content.split()
-        chunk_size = 200
+        chunk_size = 50
         chunks = [' '.join(tokens[i:i + chunk_size]) for i in range(0, len(tokens), chunk_size)]
         print(chunks)
 
@@ -85,7 +85,9 @@ def process_with_openai(content):
             "summary": metadata_result.get("summary"),
             "normalized_version": normalized_content,
             "chunks": chunks,
-            "vectorized_chunks": vectorized_chunks
+            "vectorized_chunks": vectorized_chunks,
+            "metadata_similarity": metadata_similarity,
+            "vectorized_similarity": vectorized_similarity
         }
     except Exception as e:
         print(f"Error processing with OpenAI: {e}")

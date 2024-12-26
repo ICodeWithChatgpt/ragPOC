@@ -75,31 +75,31 @@
     };
 
     function submitPrompt() {
-        const prompt = document.getElementById('prompt').value;
+        const prompt = document.getElementById('prompt').value.trim();
+        const metadataSimilarity = parseFloat(document.getElementById('metadata-similarity').value);
+        const vectorizedSimilarity = parseFloat(document.getElementById('vectorized-similarity').value);
         const searchDB = document.getElementById('searchDB').checked;
-
-        document.getElementById('loading').style.display = 'block';
 
         fetch('/prompt', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ prompt, searchDB })
+            body: JSON.stringify({
+                prompt: prompt,
+                searchDB: searchDB,
+                metadata_similarity: metadataSimilarity,
+                vectorized_similarity: vectorizedSimilarity
+            }),
         })
         .then(response => response.json())
         .then(data => {
-            document.getElementById('initialPrompt').value = data.initial_prompt;
-            document.getElementById('finalPrompt').value = data.final_prompt;
-            document.getElementById('response').value = data.response;
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        })
-        .finally(() => {
-            document.getElementById('loading').style.display = 'none';
-        });
+            document.getElementById('initialPrompt').value = data.initial_prompt || "N/A";
+            document.getElementById('finalPrompt').value = data.final_prompt || "N/A";
+            document.getElementById('response').value = data.response || "No response.";        })
+        .catch(error => console.error('Error handling prompt:', error));
     }
+
     document.getElementById("promptForm").addEventListener("submit", async function (e) {
         e.preventDefault();
 
@@ -149,12 +149,19 @@
 
     function processContent() {
         const editedContent = document.getElementById('edited-content').value.trim();
+        const metadataSimilarity = parseFloat(document.getElementById('metadata-similarity').value);
+        const vectorizedSimilarity = parseFloat(document.getElementById('vectorized-similarity').value);
+
         fetch('/process-content', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ edited_content: editedContent }),
+            body: JSON.stringify({
+                edited_content: editedContent,
+                metadata_similarity: metadataSimilarity,
+                vectorized_similarity: vectorizedSimilarity,
+            }),
         })
         .then(response => response.json())
         .then(data => {

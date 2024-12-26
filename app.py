@@ -43,8 +43,12 @@ def process_content():
     print("STEP 2: Processing content......................")
     data = request.get_json()
     edited_content = data.get("edited_content", "").strip()
+    metadata_similarity = data.get("metadata_similarity", 0.8)
+    vectorized_similarity = data.get("vectorized_similarity", 0.8)
 
-    result = process_with_openai(edited_content)
+    print(f"Processing content with metadata similarity threshold: {metadata_similarity} and vectorized similarity threshold: {vectorized_similarity}")
+
+    result = process_with_openai(edited_content, metadata_similarity, vectorized_similarity)
     if result:
         normalized_content = result.get("normalized_version", "")
         chunks = result.get("chunks", [])
@@ -66,17 +70,22 @@ def process_content():
 
 # Route: Handle Prompt Submission
 @app.route("/prompt", methods=["POST"])
-def handle_prompt():
+def submit_propmt():
+
     data = request.get_json()
     prompt = data.get("prompt", "").strip()
     search_db_first = data.get("searchDB", False)
+    metadata_similarity = data.get("metadata_similarity", 0.8)
+    vectorized_similarity = data.get("vectorized_similarity", 0.8)
+    print("Metadata Similarity:", metadata_similarity)
+    print("Vectorized Similarity:", vectorized_similarity)
 
     initial_prompt = prompt
     final_prompt = prompt
     response_text = "No response generated."
 
     if search_db_first:
-        relevant_context = db.search_vectorized_content(prompt)
+        relevant_context = db.search_vectorized_content(prompt, metadata_similarity, vectorized_similarity)
         if relevant_context:
             final_prompt = f"""
         Use the following retrieved context to answer the user's query.

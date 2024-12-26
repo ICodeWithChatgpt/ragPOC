@@ -108,6 +108,9 @@ def search_vectorized_content(query, metadata_similarity_threshold=0.80, vectori
     query_embedding = query_embedding / np.linalg.norm(query_embedding)
     print(f"Query Embedding: {query_embedding}")
 
+    # Log the thresholds being used
+    print(f"Searching with metadata similarity threshold: {metadata_similarity_threshold} and vectorized similarity threshold: {vectorized_similarity_threshold}")
+
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
