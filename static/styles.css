@@ -1,41 +1,98 @@
-/* styles.css */
 body {
     font-family: Arial, sans-serif;
-    margin: 20px;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f9;
+    color: #333;
 }
+
 .container {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* Two equal columns */
-    gap: 20px; /* Space between columns */
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
 }
-#loading {
+
+.content {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #444;
+}
+
+textarea, input[type="number"], input[type="range"] {
+    width: 100%;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+textarea {
+    height: 100px;
+    resize: vertical;
+}
+
+label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+button.btn {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button.btn:hover {
+    background-color: #0056b3;
+}
+
+.info-icon {
+    cursor: pointer;
+    margin-left: 5px;
+}
+
+.info-dialog {
     display: none;
-    margin: 10px 0;
-    font-style: italic;
-    color: gray;
+    position: absolute;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 40%;
+    z-index: 100;
 }
+
+.info-icon:hover + .info-dialog {
+    display: block;
+}
+
 .spinner {
     border: 4px solid rgba(0, 0, 0, 0.1);
-    border-left-color: #09f;
+    border-left-color: #007BFF;
     height: 30px;
     width: 30px;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    display: inline-block;
+    margin: 10px auto;
 }
+
 @keyframes spin {
     to { transform: rotate(360deg); }
-}
-textarea {
-    width: 100%;
-    height: 200px;
-    margin-bottom: 10px;
-}
-button {
-    padding: 10px 20px;
-    font-size: 16px;
-    margin-bottom: 40px;
-}
-.feedback {
-    margin: 20px 0;
 }
