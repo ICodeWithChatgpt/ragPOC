@@ -16,6 +16,10 @@
             <button type="button" onclick="fetchContent()">Fetch Content</button><br><br>
             <label for="edited-content">Edit the content below:</label><br>
             <textarea id="edited-content" placeholder="Final content comes here..." name="edited-content"></textarea><br><br>
+            <br>
+            <label for="chunk-size">Chunk Size:</label>
+            <input type="number" id="chunk-size" value="250">
+            <br>
             <button type="button" onclick="processContent()">Process Content</button>
         </form>
         <div id="result"></div>
@@ -60,6 +64,12 @@
     document.getElementById('vectorized-similarity').addEventListener('input', function() {
         document.getElementById('vectorized-similarity-value').innerText = this.value;
     });
+
+    document.getElementById('chunk-size').addEventListener('input', function() {
+    const chunkSize = parseInt(this.value);
+    console.log(`Chunk size changed to: ${chunkSize}`);
+    });
+
 
     document.getElementById('searchDB').addEventListener('change', function() {
         const isChecked = this.checked;
@@ -151,6 +161,8 @@
         const editedContent = document.getElementById('edited-content').value.trim();
         const metadataSimilarity = parseFloat(document.getElementById('metadata-similarity').value);
         const vectorizedSimilarity = parseFloat(document.getElementById('vectorized-similarity').value);
+        const chunkSize = parseInt(document.getElementById('chunk-size').value);
+        console.log("Chunk size from frontend:", chunkSize);
 
         fetch('/process-content', {
             method: 'POST',
@@ -161,6 +173,7 @@
                 edited_content: editedContent,
                 metadata_similarity: metadataSimilarity,
                 vectorized_similarity: vectorizedSimilarity,
+                chunk_size: chunkSize
             }),
         })
         .then(response => response.json())

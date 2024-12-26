@@ -45,10 +45,15 @@ def process_content():
     edited_content = data.get("edited_content", "").strip()
     metadata_similarity = data.get("metadata_similarity", 0.8)
     vectorized_similarity = data.get("vectorized_similarity", 0.8)
-
+    try:
+        chunk_size = int(data.get("chunk_size", 250))
+        print(f"Received chunk size: {chunk_size}")
+    except (ValueError, TypeError):
+        chunk_size = 250  # Fallback if the conversion fails
+    print(f"Received chunk size: {chunk_size}")
     print(f"Processing content with metadata similarity threshold: {metadata_similarity} and vectorized similarity threshold: {vectorized_similarity}")
 
-    result = process_with_openai(edited_content, metadata_similarity, vectorized_similarity)
+    result = process_with_openai(edited_content, metadata_similarity, vectorized_similarity, chunk_size)
     if result:
         normalized_content = result.get("normalized_version", "")
         chunks = result.get("chunks", [])

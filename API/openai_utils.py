@@ -5,7 +5,7 @@ import json
 from helpers.helper_functions import pad_or_truncate_embedding
 
 
-def process_with_openai(content, metadata_similarity=0.8, vectorized_similarity=0.8):
+def process_with_openai(content, metadata_similarity=0.8, vectorized_similarity=0.8, chunk_size=250):
     """Send content to OpenAI API for processing. Only during the content processing phase."""
     try:
         # Extract metadata and tags from the entire content first
@@ -70,11 +70,12 @@ def process_with_openai(content, metadata_similarity=0.8, vectorized_similarity=
         )
         normalized_content = response.choices[0].message.content
 
-        # Split normalized content into chunks of 1536 tokens
+
+        # Split normalized content into chunks of specified size
         tokens = normalized_content.split()
-        chunk_size = 50
         chunks = [' '.join(tokens[i:i + chunk_size]) for i in range(0, len(tokens), chunk_size)]
         print(chunks)
+        print(chunk_size)
 
         # Vectorize each chunk separately and ensure the correct dimensions
         vectorized_chunks = [pad_or_truncate_embedding(generate_embedding(chunk), 1536) for chunk in chunks]
