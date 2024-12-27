@@ -2,7 +2,6 @@ from flask import Flask, request, render_template, jsonify
 import openai
 import os
 from dotenv import load_dotenv
-
 from API.openai_utils import query_openai, process_with_openai, generate_embedding
 from scraper import scrape_url
 import database.database as db

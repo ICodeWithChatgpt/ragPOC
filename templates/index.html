@@ -21,10 +21,9 @@
                 <textarea id="edited-content" placeholder="Final content comes here..." name="edited-content"></textarea>
             </div>
             <div class="form-group">
-                <label for="chunk-size">Chunk Size:</label>
-                <input type="number" id="chunk-size" value="250">
-                <span class="info-icon" id="info-icon">ℹ️</span>
-                <div class="info-dialog" id="info-dialog">
+                <label for="chunk-size" style="display: inline-block; margin-right: 5px;">Chunk Size:</label>
+                <span class="info-icon" id="info-icon" style="display: inline-block; cursor: pointer; margin-left: 5px;">ℹ️</span>
+                <div class="info-dialog" id="info-dialog" style="display: none; position: absolute; background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); z-index: 1000;">
                     <p><strong>Chunk Size Recommendations:</strong></p>
                     <p>Choose the appropriate chunk size based on the content length and the type of analysis:</p>
                     <ul>
@@ -41,17 +40,16 @@
                             <br><em>Why? Larger chunks reduce splits while preserving detail for long content.</em>
                         </li>
                         <li><strong>Specific Analysis:</strong>
-                            <br>Use a chunk size of <strong>100–200 tokens</strong>.
+                            <br>Use a chunk size of <strong>50–250 tokens</strong>.
                             <br><em>Why? Best for extracting precise themes or sentiments.</em>
                         </li>
                         <li><strong>Broader Analysis:</strong>
-                            <br>Use a chunk size of <strong>500–1,000 tokens</strong>.
+                            <br>Use a chunk size of <strong>250–1,000 tokens</strong>.
                             <br><em>Why? Ideal for summarization and high-level overviews.</em>
                         </li>
                     </ul>
                 </div>
-            </div>
-            <div class="form-group">
+                <input type="number" id="chunk-size" value="250">
                 <button type="button" class="btn" onclick="processContent()">Process Content</button>
                 <div id="loading-content" style="display: none;">
                     <div class="spinner"></div>
@@ -72,17 +70,30 @@
             </div>
             <div class="form-group">
             <input type="checkbox" id="searchDB" name="searchDB">
-            <label for="searchDB" style="display: inline;">Search DB first</label>
+            <label for="searchDB" style="display: inline;">Search Knowledge DB first</label>
             </div>
             <br>
             <div class="form-group" >
-                <label for="metadata-similarity">Metadata Similarity Threshold:</label>
+                <label for="metadata-similarity" style="display: inline-block; margin-right: 5px;">Metadata Similarity Threshold:</label>
                 <span id="metadata-similarity-value">0.80</span>
+                <span class="info-icon" id="info-icon-metadata" style="display: inline-block; cursor: pointer; margin-left: 5px;">ℹ️</span>
+                <div class="info-dialog" id="info-dialog-metadata" style="position: absolute; background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); z-index: 1000;">
+                    <p><strong>Metadata Threshold:</strong></p>
+                    <p>This threshold determines how closely the <strong>metadata</strong> of the <strong>stored documents</strong> (primarily the titles, summaries and labels) should match the query.</p>
+                    <p>Adjusting this slider will influence how relevant the retrieved documents are <strong>based on their descriptive attributes.</strong></p>
+
+                </div>
                 <input type="range" id="metadata-similarity" name="metadata-similarity" min="0" max="1" step="0.01" value="0.80" disabled>
             </div>
             <div class="form-group">
-                <label for="vectorized-similarity">Vectorized Similarity Threshold:</label>
+                <label for="vectorized-similarity" style="display: inline-block; margin-right: 5px;">Vectorized Similarity Threshold:</label>
                 <span id="vectorized-similarity-value">0.80</span>
+                <span class="info-icon" id="info-icon-vectorized-data" style="display: inline-block; cursor: pointer; margin-left: 5px;">ℹ️</span>
+                <div class="info-dialog" id="info-dialog-vectorized-data" style="position: absolute; background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); z-index: 1000;">
+                    <p><strong>Content Threshold:</strong></p>
+                    <p>This threshold controls how closely the <strong>vectorized content within the documents, semantically aligns</strong> with the query.</p>
+                    <p>Adjusting this slider affects the relevance of the results based on <strong>the actual content and context within the documents.</strong> However, this threshold only takes effect if relevant metadata has already been identified.</p>
+                </div>
                 <input type="range" id="vectorized-similarity" name="vectorized-similarity" min="0" max="1" step="0.01" value="0.80" disabled>
             </div>
             <button type="button" class="btn" onclick="submitPrompt()">Submit</button>
@@ -107,11 +118,11 @@
 <script>
     // JavaScript functions remain the same
     document.getElementById('metadata-similarity').addEventListener('input', function() {
-        document.getElementById('metadata-similarity-value').innerText = this.value;
+    document.getElementById('metadata-similarity-value').innerText = parseFloat(this.value).toFixed(2);
     });
 
     document.getElementById('vectorized-similarity').addEventListener('input', function() {
-        document.getElementById('vectorized-similarity-value').innerText = this.value;
+    document.getElementById('vectorized-similarity-value').innerText = parseFloat(this.value).toFixed(2);
     });
 
     document.getElementById('chunk-size').addEventListener('input', function() {
@@ -294,7 +305,6 @@
                 resultDiv.appendChild(tagsDiv);
                 resultDiv.appendChild(summaryDiv);
                 resultDiv.appendChild(scoreDiv);
-
                 resultsDiv.appendChild(resultDiv);
             });
         } else {
