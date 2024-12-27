@@ -1,12 +1,10 @@
 from flask import Flask, request, render_template, jsonify
-import sqlite3
-import numpy as np
 import openai
 import os
-import json
 from dotenv import load_dotenv
-
-from openai_utils import generate_embedding
+from API.openai_utils import query_openai, process_with_openai, generate_embedding
+from scraper import scrape_url
+import database.database as db
 
 # Load environment variables
 load_dotenv(".env.local")
@@ -15,97 +13,109 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 app = Flask(__name__)
 DB_NAME = "content_store.db"
 
-# Helper: Compute Cosine Similarity
-def cosine_similarity(vec1, vec2):
-    """Calculate cosine similarity between two vectors."""
-    return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
-
-# Function: Search Vectorized Content
-def search_vectorized_content(query):
-    """Search DB for content matching the query using semantic similarity."""
-    query_embedding = generate_embedding(query)
-    if not query_embedding:
-        print("Failed to generate query embedding.")
-        return None
-
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-
-    # Fetch all vectorized content from the database
-    cursor.execute("SELECT tags, summary, vectorized_content FROM content")
-    results = cursor.fetchall()
-    conn.close()
-
-    relevant_context = []
-    for row in results:
-        tags, summary, vectorized_content_json = row
-        try:
-            # Load the vectorized content (stored as JSON)
-            vectorized_content = json.loads(vectorized_content_json)
-            similarity = cosine_similarity(query_embedding, vectorized_content)
-
-            # Threshold for relevance (adjust as needed)
-            if similarity > 0.75:
-                relevant_context.append(f" Similarity: {similarity:.2f}, Tags: {tags}, Summary: {summary}")
-        except Exception as e:
-            print(f"Error processing vectorized content: {e}")
-            continue
-
-    if relevant_context:
-        return "\n".join(relevant_context)
-    return None
-
-# Helper: Query OpenAI API
-def query_openai(final_prompt):
-    """Query OpenAI LLM."""
-    try:
-        response = openai.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": final_prompt}]
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"Error querying OpenAI: {e}"
-
-
 # Route: Show the Prompt Page
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html")
 
+# Route: Fetch Content
+@app.route("/fetch-content", methods=["POST"])
+def fetch_content():
+    print("STEP 1: Fetching content......................")
+    data = request.get_json()
+    input_data = data.get("input_data", "").strip()
+
+    url = None
+    if input_data.startswith("http"):
+        url = input_data
+        raw_content = scrape_url(url)
+        if not raw_content:
+            return jsonify({"error": "Failed to scrape URL."}), 400
+    else:
+        raw_content = input_data
+
+    return jsonify({"raw_content": raw_content})
+
+# Route: Process Content
+@app.route("/process-content", methods=["POST"])
+def process_content():
+    print("STEP 2: Processing content......................")
+    data = request.get_json()
+    edited_content = data.get("edited_content", "").strip()
+    metadata_similarity = data.get("metadata_similarity", 0.8)
+    vectorized_similarity = data.get("vectorized_similarity", 0.8)
+    try:
+        chunk_size = int(data.get("chunk_size", 250))
+        print(f"Received chunk size: {chunk_size}")
+    except (ValueError, TypeError):
+        chunk_size = 250  # Fallback if the conversion fails
+    print(f"Received chunk size: {chunk_size}")
+    print(f"Processing content with metadata similarity threshold: {metadata_similarity} and vectorized similarity threshold: {vectorized_similarity}")
+
+    result = process_with_openai(edited_content, metadata_similarity, vectorized_similarity, chunk_size)
+    if result:
+        normalized_content = result.get("normalized_version", "")
+        chunks = result.get("chunks", [])
+        vectorized_chunks = result.get("vectorized_chunks", [])
+
+        document_id = db.store_in_db(
+            url=None,
+            raw_content=edited_content,
+            metadata=result.get("metadata"),
+            tags=result.get("tags"),
+            summary=result.get("summary"),
+            normalized_content=normalized_content,
+            chunks=chunks,
+            vectorized_chunks=vectorized_chunks
+        )
+        result["document_id"] = document_id  # Include document_id in the result
+        return jsonify(result)
+    else:
+        return jsonify({"error": "Failed to process content."}), 500
+
+@app.route("/update-tags", methods=["POST"])
+def update_tags():
+    data = request.get_json()
+    document_id = data.get("document_id")
+    tags = data.get("tags", [])
+    print(f"Updating tags for document ID {document_id}: {tags}")  # Debug log
+    # Update the tags in the database
+    db.update_tags(document_id, tags)
+    return jsonify({"status": "success"})
 
 # Route: Handle Prompt Submission
 @app.route("/prompt", methods=["POST"])
-def handle_prompt():
-    prompt = request.form.get("prompt", "").strip()
-    search_db_first = request.form.get("searchDB") == "true"
+def submit_propmt():
+
+    data = request.get_json()
+    prompt = data.get("prompt", "").strip()
+    search_db_first = data.get("searchDB", False)
+    metadata_similarity = data.get("metadata_similarity", 0.8)
+    vectorized_similarity = data.get("vectorized_similarity", 0.8)
+    print("Metadata Similarity:", metadata_similarity)
+    print("Vectorized Similarity:", vectorized_similarity)
 
     initial_prompt = prompt
     final_prompt = prompt
     response_text = "No response generated."
 
     if search_db_first:
-        # Step 1: Search for relevant content in the vectorized DB
-        relevant_context = search_vectorized_content(prompt)
-
+        relevant_context = db.search_vectorized_content(prompt, metadata_similarity, vectorized_similarity)
         if relevant_context:
-            # Step 2: Construct the final prompt with the retrieved context
-            # EXCLUDED FROM PROMPT:Do not include any information outside of this context to avoid hallucination.
             final_prompt = f"""
-            Use the following retrieved context to answer the user's query. 
+        Use the following retrieved context to answer the user's query.
 
-            ### Retrieved Context:
-            
-            {relevant_context}
+        ### Retrieved Context:
 
-            ### User Query:
-            {prompt}
-            """
+        {relevant_context}
+
+        ### User Query:
+
+        {prompt}
+        """
         else:
-            # If no relevant context, fallback to the original user prompt
             final_prompt = f"No relevant content found. Proceeding with user query:\n{prompt}"
 
-    # Step 3: Query OpenAI with the final prompt
     response_text = query_openai(final_prompt)
 
     return jsonify({
@@ -114,6 +124,6 @@ def handle_prompt():
         "response": response_text
     })
 
-
 if __name__ == "__main__":
+    db.setup_database()
     app.run(debug=True)

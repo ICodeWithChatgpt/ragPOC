@@ -4,135 +4,389 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLM Prompt Page</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        #loading {
-            display: none;
-            margin: 10px 0;
-            font-style: italic;
-            color: gray;
-        }
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #09f;
-            height: 30px;
-            width: 30px;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        textarea, button {
-            margin-top: 10px;
-        }
-        .feedback {
-            margin: 20px 0;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Prompt the LLM</h1>
-
-    <form id="promptForm">
-        <label for="prompt">Enter your prompt:</label><br>
-        <textarea id="prompt" name="prompt" rows="4" cols="50"></textarea><br>
-
-        <label for="searchDB">Search in DB First:</label>
-        <input type="checkbox" id="searchDB" name="searchDB"><br><br>
-
-        <button type="submit">Submit</button>
-        <div id="loading">
-            <span class="spinner"></span> Processing your request...
-        </div>
-    </form>
-
-    <div class="feedback">
-        <h2>Initial Prompt:</h2>
-        <pre id="initialPrompt"></pre>
-
-        <h2>Final Prompt (After DB Lookup):</h2>
-        <pre id="finalPrompt"></pre>
-
-        <h2>Response:</h2>
-        <div id="response"></div>
+<div class="container">
+    <div class="content">
+        <h1>Content Processor</h1>
+        <form id="content-form">
+            <div class="form-group">
+                <label for="input-data">Enter a URL or paste raw content below:</label>
+                <textarea id="input-data" placeholder="URL / RAW Text" name="input-data"></textarea>
+            </div>
+            <button type="button" class="btn" onclick="fetchContent()">Fetch Content</button>
+            <div class="form-group">
+                <label for="edited-content">Edit the content below:</label>
+                <textarea id="edited-content" placeholder="Final content comes here..." name="edited-content"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="edit-tags-checkbox" style="display: inline-block; margin-right: 5px;">Edit Tags?</label>
+                <input type="checkbox" id="edit-tags-checkbox" style="display: inline-block;">
+            </div>
+            <em>For more granular categorisation</em>
+            <div class="form-group" style="margin-top: 15px">
+                <label for="chunk-size" style="display: inline-block; margin-right: 5px;">Chunk Size:</label>
+                <span class="info-icon" id="info-icon" style="display: inline-block; cursor: pointer; margin-left: 5px;">ℹ️</span>
+                <div class="info-dialog" id="info-dialog" style="display: none; position: absolute; background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); z-index: 1000;">
+                    <p><strong>Chunk Size Recommendations:</strong></p>
+                    <p>Choose the appropriate chunk size based on the content length and the type of analysis:</p>
+                    <ul>
+                        <li><strong>Small Content (Less than 1,000 words):</strong>
+                            <br>Use a chunk size of <strong>100–200 tokens</strong>.
+                            <br><em>Why? Ensures finer granularity, ideal for detailed patterns in short texts.</em>
+                        </li>
+                        <li><strong>Medium Content (1,000–5,000 words):</strong>
+                            <br>Use a chunk size of <strong>200–500 tokens</strong>.
+                            <br><em>Why? Balances granularity and processing efficiency for medium texts.</em>
+                        </li>
+                        <li><strong>Large Content (More than 5,000 words):</strong>
+                            <br>Use a chunk size of <strong>500–1,000 tokens</strong>.
+                            <br><em>Why? Larger chunks reduce splits while preserving detail for long content.</em>
+                        </li>
+                        <li><strong>Specific Analysis:</strong>
+                            <br>Use a chunk size of <strong>50–250 tokens</strong>.
+                            <br><em>Why? Best for extracting precise themes or sentiments.</em>
+                        </li>
+                        <li><strong>Broader Analysis:</strong>
+                            <br>Use a chunk size of <strong>250–1,000 tokens</strong>.
+                            <br><em>Why? Ideal for summarization and high-level overviews.</em>
+                        </li>
+                    </ul>
+                </div>
+                <input type="number" id="chunk-size" value="250">
+                <button type="button" class="btn" onclick="processContent()">Process Content</button>
+                <div id="loading-content" style="display: none;">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            <div id="result" style="display: none">
+                <h2>Processed result</h2>
+                <pre id="result-content"></pre>
+            </div>
+        </form>
     </div>
+    <!-- Modal Dialog for Tags -->
+    <div id="tagsModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Tags</h2>
+            <div id="tagsContainer"></div>
+            <button id="saveTagsButton">Save Tags</button>
+        </div>
+    </div>
+    <div class="content">
+        <h1>Prompt Interface</h1>
+        <form id="promptForm">
+            <div class="form-group">
+                <label for="prompt">Ask the model:</label>
+                <textarea id="prompt" placeholder="Enter your prompt here..." name="prompt"></textarea>
+            </div>
+            <div class="form-group">
+            <input type="checkbox" id="searchDB" name="searchDB">
+            <label for="searchDB" style="display: inline;">Search Knowledge DB first</label>
+            </div>
+            <br>
+            <div class="form-group" >
+                <label for="metadata-similarity" style="display: inline-block; margin-right: 5px;">Metadata Similarity Threshold:</label>
+                <span id="metadata-similarity-value">0.80</span>
+                <span class="info-icon" id="info-icon-metadata" style="display: inline-block; cursor: pointer; margin-left: 5px;">ℹ️</span>
+                <div class="info-dialog" id="info-dialog-metadata" style="position: absolute; background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); z-index: 1000;">
+                    <p><strong>Metadata Threshold:</strong></p>
+                    <p>This threshold determines how closely the <strong>metadata</strong> of the <strong>stored documents</strong> (primarily the titles, summaries and labels) should match the query.</p>
+                    <p>Adjusting this slider will influence how relevant the retrieved documents are <strong>based on their descriptive attributes.</strong></p>
 
-    <script>
-        document.getElementById("promptForm").addEventListener("submit", async function (e) {
-            e.preventDefault();
+                </div>
+                <input type="range" id="metadata-similarity" name="metadata-similarity" min="0" max="1" step="0.01" value="0.80" disabled>
+            </div>
+            <div class="form-group">
+                <label for="vectorized-similarity" style="display: inline-block; margin-right: 5px;">Vectorized Similarity Threshold:</label>
+                <span id="vectorized-similarity-value">0.80</span>
+                <span class="info-icon" id="info-icon-vectorized-data" style="display: inline-block; cursor: pointer; margin-left: 5px;">ℹ️</span>
+                <div class="info-dialog" id="info-dialog-vectorized-data" style="position: absolute; background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); z-index: 1000;">
+                    <p><strong>Content Threshold:</strong></p>
+                    <p>This threshold controls how closely the <strong>vectorized content within the documents, semantically aligns</strong> with the query.</p>
+                    <p>Adjusting this slider affects the relevance of the results based on <strong>the actual content and context within the documents.</strong> However, this threshold only takes effect if relevant metadata has already been identified.</p>
+                </div>
+                <input type="range" id="vectorized-similarity" name="vectorized-similarity" min="0" max="1" step="0.01" value="0.80" disabled>
+            </div>
+            <button type="button" class="btn" onclick="submitPrompt()">Submit</button>
+        </form>
+        <div id="loading" style="display: none;">
+            <div class="spinner"></div>
+        </div>
 
-            const prompt = document.getElementById("prompt").value;
-            const searchDB = document.getElementById("searchDB").checked;
-
-            // Show the loading spinner
-            const loadingDiv = document.getElementById("loading");
-            loadingDiv.style.display = "block";
-
-            // Prepare payload
-            const formData = new FormData();
-            formData.append("prompt", prompt);
-            formData.append("searchDB", searchDB);
-
-            try {
-                const response = await fetch("/prompt", {
-                    method: "POST",
-                    body: formData
-                });
-                const result = await response.json();
-
-                // Update the UI
-                document.getElementById("initialPrompt").innerText = result.initial_prompt || "N/A";
-                document.getElementById("finalPrompt").innerText = result.final_prompt || "N/A";
-                document.getElementById("response").innerText = result.response || "No response.";
-
-            } catch (err) {
-                console.error("Error:", err);
-                document.getElementById("response").innerText = "An error occurred.";
-            } finally {
-                // Hide the loading spinner
-                loadingDiv.style.display = "none";
-            }
-        });
-    </script>
-<div id="results"></div>
-
-<script>
-  // Function to update the results UI with the retrieved context and similarity scores
-  function updateResults(data) {
-    const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = '';
-
-    if (data && data.length > 0) {
-      data.forEach(item => {
-        const resultDiv = document.createElement('div');
-        resultDiv.classList.add('result');
-
-        // Display tags, summary, and similarity score
-        const tagsDiv = document.createElement('p');
-        tagsDiv.textContent = `Tags: ${item.tags}`;
-
-        const summaryDiv = document.createElement('p');
-        summaryDiv.textContent = `Summary: ${item.summary}`;
-
-        const scoreDiv = document.createElement('p');
-        scoreDiv.textContent = `Similarity Score: ${item.similarity.toFixed(3)}`;
-
-        resultDiv.appendChild(tagsDiv);
-        resultDiv.appendChild(summaryDiv);
-        resultDiv.appendChild(scoreDiv);
-
-        resultsDiv.appendChild(resultDiv);
-      });
-    } else {
-      resultsDiv.innerHTML = '<p>No relevant content found.</p>';
-    }
-  }
-</script>
-
+        <div id="prompt-results" style="display: none">
+            <h2>User's Initial Prompt</h2>
+            <textarea id="initialPrompt" readonly></textarea>
+            <h2>Augmented Prompt</h2>
+            <textarea id="finalPrompt" readonly></textarea>
+            <h2>Response from the LLM</h2>
+            <textarea id="response" readonly></textarea>
+        </div>
+    </div>
+</div>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
+<script>
+    // JavaScript functions remain the same
+    document.getElementById('metadata-similarity').addEventListener('input', function() {
+    document.getElementById('metadata-similarity-value').innerText = parseFloat(this.value).toFixed(2);
+    });
+
+    document.getElementById('vectorized-similarity').addEventListener('input', function() {
+    document.getElementById('vectorized-similarity-value').innerText = parseFloat(this.value).toFixed(2);
+    });
+
+    document.getElementById('chunk-size').addEventListener('input', function() {
+    const chunkSize = parseInt(this.value);
+    console.log(`Chunk size changed to: ${chunkSize}`);
+    });
+
+    document.getElementById('info-icon').addEventListener('mouseover', function() {
+    document.getElementById('info-dialog').style.display = 'block';
+    });
+
+    document.getElementById('info-icon').addEventListener('mouseout', function() {
+    document.getElementById('info-dialog').style.display = 'none';
+    });
+
+
+    document.getElementById('searchDB').addEventListener('change', function() {
+        const isChecked = this.checked;
+        document.getElementById('metadata-similarity').disabled = !isChecked;
+        document.getElementById('vectorized-similarity').disabled = !isChecked;
+    });
+
+    // Initialize the sliders based on the initial state of the checkbox
+    window.onload = function() {
+        const isChecked = document.getElementById('searchDB').checked;
+        document.getElementById('metadata-similarity').disabled = !isChecked;
+        document.getElementById('vectorized-similarity').disabled = !isChecked;
+    };
+
+    function submitPrompt() {
+    const prompt = document.getElementById('prompt').value.trim();
+    const metadataSimilarity = parseFloat(document.getElementById('metadata-similarity').value);
+    const vectorizedSimilarity = parseFloat(document.getElementById('vectorized-similarity').value);
+    const searchDB = document.getElementById('searchDB').checked;
+
+    const loadingDiv = document.getElementById('loading');
+    const promptResultsDiv = document.getElementById('prompt-results');
+    const initialPromptTextarea = document.getElementById('initialPrompt');
+    const finalPromptTextarea = document.getElementById('finalPrompt');
+    const responseTextarea = document.getElementById('response');
+
+    loadingDiv.style.display = "block"; // Show spinner
+    promptResultsDiv.style.display = "none"; // Hide result sections
+
+    fetch('/prompt', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            prompt: prompt,
+            searchDB: searchDB,
+            metadata_similarity: metadataSimilarity,
+            vectorized_similarity: vectorizedSimilarity
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        initialPromptTextarea.value = data.initial_prompt || "N/A";
+        finalPromptTextarea.value = data.final_prompt || "N/A";
+        responseTextarea.value = data.response || "No response.";
+        promptResultsDiv.style.display = "block"
+    })
+    .catch(error => {
+        console.error('Error handling prompt:', error);
+        responseTextarea.value = "An error occurred.";
+        promptResultsDiv.style.display = "block"; // Show result sections even on error
+    })
+    .finally(() => {
+        loadingDiv.style.display = "none"; // Hide spinner after completion
+    });
+}
+
+    document.getElementById("promptForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const prompt = document.getElementById("prompt").value;
+        const searchDB = document.getElementById("searchDB").checked;
+
+        const loadingDiv = document.getElementById("loading");
+        loadingDiv.style.display = "block";
+
+        const formData = new FormData();
+        formData.append("prompt", prompt);
+        formData.append("searchDB", searchDB);
+
+        try {
+            const response = await fetch("/prompt", {
+                method: "POST",
+                body: formData
+            });
+            const result = await response.json();
+
+            document.getElementById("initialPrompt").innerText = result.initial_prompt || "N/A";
+            document.getElementById("finalPrompt").innerText = result.final_prompt || "N/A";
+            document.getElementById("response").innerText = result.response || "No response.";
+
+        } catch (err) {
+            console.error("Error:", err);
+            document.getElementById("response").innerText = "An error occurred.";
+        } finally {
+            loadingDiv.style.display = "none";
+        }
+    });
+    function fetchContent() {
+        const inputData = document.getElementById('input-data').value.trim();
+        fetch('/fetch-content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ input_data: inputData }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('edited-content').value = data.raw_content;
+        })
+        .catch(error => console.error('Error fetching content:', error));
+    }
+
+    function processContent() {
+    const editedContent = document.getElementById('edited-content').value.trim();
+
+    if (!editedContent) {
+        alert("Please provide content to process.");
+        return;
+    }
+    const metadataSimilarity = parseFloat(document.getElementById('metadata-similarity').value);
+    const vectorizedSimilarity = parseFloat(document.getElementById('vectorized-similarity').value);
+    const chunkSize = parseInt(document.getElementById('chunk-size').value);
+    const loadingDiv = document.getElementById('loading-content');
+    const resultDiv = document.getElementById('result');
+    const resultContent = document.getElementById('result-content');
+    const editTagsCheckbox = document.getElementById('edit-tags-checkbox');
+
+    loadingDiv.style.display = "block"; // Show spinner
+    resultDiv.style.display = "none"; // Hide result section
+
+    fetch('/process-content', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            edited_content: editedContent,
+            metadata_similarity: metadataSimilarity,
+            vectorized_similarity: vectorizedSimilarity,
+            chunk_size: chunkSize
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        resultContent.innerText = JSON.stringify(data, null, 2);
+        resultDiv.style.display = "block";
+
+        // Show the tags in a modal dialog if the checkbox is checked
+        if (editTagsCheckbox.checked) {
+            const tags = data.tags.split(", ");
+            const documentId = data.document_id; // Ensure document_id is retrieved from the response
+            console.log("Tags received:", tags); // Debug log
+            showTagsModal(tags, documentId);
+        }
+    })
+    .finally(() => {
+        loadingDiv.style.display = "none"; // Hide spinner after completion
+    });
+}
+
+function showTagsModal(tags, documentId) {
+    const modal = document.getElementById('tagsModal');
+    const tagsContainer = document.getElementById('tagsContainer');
+    tagsContainer.innerHTML = '';
+
+    tags.forEach(tag => {
+        const tagElement = document.createElement('span');
+        tagElement.textContent = tag;
+        tagElement.classList.add('tag');
+        const removeButton = document.createElement('button');
+        removeButton.textContent = 'x';
+        removeButton.classList.add('remove-tag');
+        removeButton.onclick = function() {
+            tagsContainer.removeChild(tagElement);
+        };
+        tagElement.appendChild(removeButton);
+        tagsContainer.appendChild(tagElement);
+    });
+
+    const addTagInput = document.createElement('input');
+    addTagInput.type = 'text';
+    addTagInput.placeholder = 'Add a tag';
+    addTagInput.classList.add('add-tag-input');
+    addTagInput.onkeypress = function(event) {
+        if (event.key === 'Enter') {
+            const newTag = addTagInput.value.trim();
+            if (newTag) {
+                const tagElement = document.createElement('span');
+                tagElement.textContent = newTag;
+                tagElement.classList.add('tag');
+                const removeButton = document.createElement('button');
+                removeButton.textContent = 'x';
+                removeButton.classList.add('remove-tag');
+                removeButton.onclick = function() {
+                    tagsContainer.removeChild(tagElement);
+                };
+                tagElement.appendChild(removeButton);
+                tagsContainer.appendChild(tagElement);
+                addTagInput.value = '';
+            }
+        }
+    };
+    tagsContainer.appendChild(addTagInput);
+
+    modal.style.display = 'block';
+
+    // Close the modal when the user clicks on <span> (x)
+    document.querySelector('.close').onclick = function() {
+        modal.style.display = 'none';
+    };
+
+    // Close the modal when the user clicks anywhere outside of the modal
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    };
+
+    // Save the tags when the user clicks the save button
+    document.getElementById('saveTagsButton').onclick = function() {
+        const updatedTags = Array.from(tagsContainer.children)
+            .filter(child => child.classList.contains('tag'))
+            .map(tagElement => tagElement.textContent.replace('x', '').trim());
+        saveTags(documentId, updatedTags);
+        modal.style.display = 'none';
+    };
+}
+
+function saveTags(documentId, tags) {
+    fetch('/update-tags', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ document_id: documentId, tags: tags }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Tags updated:', data);
+    })
+    .catch(error => {
+        console.error('Error updating tags:', error);
+    });
+}
+</script>
