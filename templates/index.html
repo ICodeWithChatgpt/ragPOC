@@ -51,9 +51,17 @@
                     </ul>
                 </div>
             </div>
-            <button type="button" class="btn" onclick="processContent()">Process Content</button>
+            <div class="form-group">
+                <button type="button" class="btn" onclick="processContent()">Process Content</button>
+                <div id="loading-content" style="display: none;">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            <div id="result" style="display: none">
+                <h2>Processed result</h2>
+                <pre id="result-content"></pre>
+            </div>
         </form>
-        <div id="result"></div>
     </div>
     <div class="content">
         <h1>Prompt Interface</h1>
@@ -83,12 +91,14 @@
             <div class="spinner"></div>
         </div>
 
-        <h2>User's Initial Prompt</h2>
-        <textarea id="initialPrompt" readonly></textarea>
-        <h2>Augmented Prompt</h2>
-        <textarea id="finalPrompt" readonly></textarea>
-        <h2>Response from the LLM</h2>
-        <textarea id="response" readonly></textarea>
+        <div id="prompt-results" style="display: none">
+            <h2>User's Initial Prompt</h2>
+            <textarea id="initialPrompt" readonly></textarea>
+            <h2>Augmented Prompt</h2>
+            <textarea id="finalPrompt" readonly></textarea>
+            <h2>Response from the LLM</h2>
+            <textarea id="response" readonly></textarea>
+        </div>
     </div>
 </div>
 <script src="{{ url_for('static', filename='script.js') }}"></script>
@@ -111,11 +121,11 @@
 
     document.getElementById('info-icon').addEventListener('mouseover', function() {
     document.getElementById('info-dialog').style.display = 'block';
-});
+    });
 
-document.getElementById('info-icon').addEventListener('mouseout', function() {
+    document.getElementById('info-icon').addEventListener('mouseout', function() {
     document.getElementById('info-dialog').style.display = 'none';
-});
+    });
 
 
     document.getElementById('searchDB').addEventListener('change', function() {
@@ -138,7 +148,13 @@ document.getElementById('info-icon').addEventListener('mouseout', function() {
     const searchDB = document.getElementById('searchDB').checked;
 
     const loadingDiv = document.getElementById('loading');
+    const promptResultsDiv = document.getElementById('prompt-results');
+    const initialPromptTextarea = document.getElementById('initialPrompt');
+    const finalPromptTextarea = document.getElementById('finalPrompt');
+    const responseTextarea = document.getElementById('response');
+
     loadingDiv.style.display = "block"; // Show spinner
+    promptResultsDiv.style.display = "none"; // Hide result sections
 
     fetch('/prompt', {
         method: 'POST',
@@ -154,13 +170,15 @@ document.getElementById('info-icon').addEventListener('mouseout', function() {
     })
     .then(response => response.json())
     .then(data => {
-        document.getElementById('initialPrompt').value = data.initial_prompt || "N/A";
-        document.getElementById('finalPrompt').value = data.final_prompt || "N/A";
-        document.getElementById('response').value = data.response || "No response.";
+        initialPromptTextarea.value = data.initial_prompt || "N/A";
+        finalPromptTextarea.value = data.final_prompt || "N/A";
+        responseTextarea.value = data.response || "No response.";
+        promptResultsDiv.style.display = "block"
     })
     .catch(error => {
         console.error('Error handling prompt:', error);
-        document.getElementById('response').value = "An error occurred.";
+        responseTextarea.value = "An error occurred.";
+        promptResultsDiv.style.display = "block"; // Show result sections even on error
     })
     .finally(() => {
         loadingDiv.style.display = "none"; // Hide spinner after completion
@@ -216,10 +234,22 @@ document.getElementById('info-icon').addEventListener('mouseout', function() {
 
     function processContent() {
         const editedContent = document.getElementById('edited-content').value.trim();
+
+        if (!editedContent) {
+            alert("Please provide content to process.");
+        return;
+        }
         const metadataSimilarity = parseFloat(document.getElementById('metadata-similarity').value);
         const vectorizedSimilarity = parseFloat(document.getElementById('vectorized-similarity').value);
         const chunkSize = parseInt(document.getElementById('chunk-size').value);
         console.log("Chunk size from frontend:", chunkSize);
+
+        const loadingDiv = document.getElementById('loading-content');
+        const resultDiv = document.getElementById('result');
+        const resultContent = document.getElementById('result-content');
+
+        loadingDiv.style.display = "block"; // Show spinner
+        resultDiv.style.display = "none"; // Hide result section
 
         fetch('/process-content', {
             method: 'POST',
@@ -235,9 +265,13 @@ document.getElementById('info-icon').addEventListener('mouseout', function() {
         })
         .then(response => response.json())
         .then(data => {
-            document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+            resultContent.innerText = JSON.stringify(data, null, 2);
+            resultDiv.style.display = "block";
+
         })
-        .catch(error => console.error('Error processing content:', error));
+        .finally(() => {
+            loadingDiv.style.display = "none"; // Hide spinner after completion
+    });
     }
     function updateResults(data) {
         const resultsDiv = document.getElementById('results');
