@@ -58,7 +58,7 @@ def process_content():
         chunks = result.get("chunks", [])
         vectorized_chunks = result.get("vectorized_chunks", [])
 
-        db.store_in_db(
+        document_id = db.store_in_db(
             url=None,
             raw_content=edited_content,
             metadata=result.get("metadata"),
@@ -68,9 +68,20 @@ def process_content():
             chunks=chunks,
             vectorized_chunks=vectorized_chunks
         )
+        result["document_id"] = document_id  # Include document_id in the result
         return jsonify(result)
     else:
         return jsonify({"error": "Failed to process content."}), 500
+
+@app.route("/update-tags", methods=["POST"])
+def update_tags():
+    data = request.get_json()
+    document_id = data.get("document_id")
+    tags = data.get("tags", [])
+    print(f"Updating tags for document ID {document_id}: {tags}")  # Debug log
+    # Update the tags in the database
+    db.update_tags(document_id, tags)
+    return jsonify({"status": "success"})
 
 # Route: Handle Prompt Submission
 @app.route("/prompt", methods=["POST"])

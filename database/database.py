@@ -95,6 +95,7 @@ def store_in_db(url, raw_content, metadata, tags, summary, normalized_content, c
     conn.commit()
     conn.close()
 
+    return document_id  # Return the document ID
 
 def search_vectorized_content(query, metadata_similarity_threshold=0.80, vectorized_similarity_threshold=0.80):
     """Search DB for content matching the query using semantic similarity."""
@@ -164,3 +165,25 @@ def search_vectorized_content(query, metadata_similarity_threshold=0.80, vectori
         return None
     finally:
         conn.close()
+
+def update_tags(document_id, tags):
+    """
+    Update the tags in the database for a specific document ID.
+
+    :param document_id: The ID of the document to update (str).
+    :param tags: List of tags to update (list of str).
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    # Convert the list of tags to a comma-separated string
+    tags_str = ", ".join(tags)
+
+    cursor.execute("""
+        UPDATE content
+        SET tags = ?
+        WHERE document_id = ?
+    """, (tags_str, document_id))
+
+    conn.commit()
+    conn.close()

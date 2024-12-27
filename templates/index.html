@@ -21,6 +21,11 @@
                 <textarea id="edited-content" placeholder="Final content comes here..." name="edited-content"></textarea>
             </div>
             <div class="form-group">
+                <label for="edit-tags-checkbox" style="display: inline-block; margin-right: 5px;">Edit Tags?</label>
+                <input type="checkbox" id="edit-tags-checkbox" style="display: inline-block;">
+            </div>
+            <em>For more granular categorisation</em>
+            <div class="form-group" style="margin-top: 15px">
                 <label for="chunk-size" style="display: inline-block; margin-right: 5px;">Chunk Size:</label>
                 <span class="info-icon" id="info-icon" style="display: inline-block; cursor: pointer; margin-left: 5px;">ℹ️</span>
                 <div class="info-dialog" id="info-dialog" style="display: none; position: absolute; background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); z-index: 1000;">
@@ -60,6 +65,15 @@
                 <pre id="result-content"></pre>
             </div>
         </form>
+    </div>
+    <!-- Modal Dialog for Tags -->
+    <div id="tagsModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Tags</h2>
+            <div id="tagsContainer"></div>
+            <button id="saveTagsButton">Save Tags</button>
+        </div>
     </div>
     <div class="content">
         <h1>Prompt Interface</h1>
@@ -244,71 +258,135 @@
     }
 
     function processContent() {
-        const editedContent = document.getElementById('edited-content').value.trim();
+    const editedContent = document.getElementById('edited-content').value.trim();
 
-        if (!editedContent) {
-            alert("Please provide content to process.");
+    if (!editedContent) {
+        alert("Please provide content to process.");
         return;
+    }
+    const metadataSimilarity = parseFloat(document.getElementById('metadata-similarity').value);
+    const vectorizedSimilarity = parseFloat(document.getElementById('vectorized-similarity').value);
+    const chunkSize = parseInt(document.getElementById('chunk-size').value);
+    const loadingDiv = document.getElementById('loading-content');
+    const resultDiv = document.getElementById('result');
+    const resultContent = document.getElementById('result-content');
+    const editTagsCheckbox = document.getElementById('edit-tags-checkbox');
+
+    loadingDiv.style.display = "block"; // Show spinner
+    resultDiv.style.display = "none"; // Hide result section
+
+    fetch('/process-content', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            edited_content: editedContent,
+            metadata_similarity: metadataSimilarity,
+            vectorized_similarity: vectorizedSimilarity,
+            chunk_size: chunkSize
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        resultContent.innerText = JSON.stringify(data, null, 2);
+        resultDiv.style.display = "block";
+
+        // Show the tags in a modal dialog if the checkbox is checked
+        if (editTagsCheckbox.checked) {
+            const tags = data.tags.split(", ");
+            const documentId = data.document_id; // Ensure document_id is retrieved from the response
+            console.log("Tags received:", tags); // Debug log
+            showTagsModal(tags, documentId);
         }
-        const metadataSimilarity = parseFloat(document.getElementById('metadata-similarity').value);
-        const vectorizedSimilarity = parseFloat(document.getElementById('vectorized-similarity').value);
-        const chunkSize = parseInt(document.getElementById('chunk-size').value);
-        console.log("Chunk size from frontend:", chunkSize);
-
-        const loadingDiv = document.getElementById('loading-content');
-        const resultDiv = document.getElementById('result');
-        const resultContent = document.getElementById('result-content');
-
-        loadingDiv.style.display = "block"; // Show spinner
-        resultDiv.style.display = "none"; // Hide result section
-
-        fetch('/process-content', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                edited_content: editedContent,
-                metadata_similarity: metadataSimilarity,
-                vectorized_similarity: vectorizedSimilarity,
-                chunk_size: chunkSize
-            }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            resultContent.innerText = JSON.stringify(data, null, 2);
-            resultDiv.style.display = "block";
-
-        })
-        .finally(() => {
-            loadingDiv.style.display = "none"; // Hide spinner after completion
+    })
+    .finally(() => {
+        loadingDiv.style.display = "none"; // Hide spinner after completion
     });
-    }
-    function updateResults(data) {
-        const resultsDiv = document.getElementById('results');
-        resultsDiv.innerHTML = '';
+}
 
-        if (data && data.length > 0) {
-            data.forEach(item => {
-                const resultDiv = document.createElement('div');
-                resultDiv.classList.add('result');
+function showTagsModal(tags, documentId) {
+    const modal = document.getElementById('tagsModal');
+    const tagsContainer = document.getElementById('tagsContainer');
+    tagsContainer.innerHTML = '';
 
-                const tagsDiv = document.createElement('p');
-                tagsDiv.textContent = `Tags: ${item.tags}`;
+    tags.forEach(tag => {
+        const tagElement = document.createElement('span');
+        tagElement.textContent = tag;
+        tagElement.classList.add('tag');
+        const removeButton = document.createElement('button');
+        removeButton.textContent = 'x';
+        removeButton.classList.add('remove-tag');
+        removeButton.onclick = function() {
+            tagsContainer.removeChild(tagElement);
+        };
+        tagElement.appendChild(removeButton);
+        tagsContainer.appendChild(tagElement);
+    });
 
-                const summaryDiv = document.createElement('p');
-                summaryDiv.textContent = `Summary: ${item.summary}`;
-
-                const scoreDiv = document.createElement('p');
-                scoreDiv.textContent = `Similarity Score: ${item.similarity.toFixed(3)}`;
-
-                resultDiv.appendChild(tagsDiv);
-                resultDiv.appendChild(summaryDiv);
-                resultDiv.appendChild(scoreDiv);
-                resultsDiv.appendChild(resultDiv);
-            });
-        } else {
-            resultsDiv.innerHTML = '<p>No relevant content found.</p>';
+    const addTagInput = document.createElement('input');
+    addTagInput.type = 'text';
+    addTagInput.placeholder = 'Add a tag';
+    addTagInput.classList.add('add-tag-input');
+    addTagInput.onkeypress = function(event) {
+        if (event.key === 'Enter') {
+            const newTag = addTagInput.value.trim();
+            if (newTag) {
+                const tagElement = document.createElement('span');
+                tagElement.textContent = newTag;
+                tagElement.classList.add('tag');
+                const removeButton = document.createElement('button');
+                removeButton.textContent = 'x';
+                removeButton.classList.add('remove-tag');
+                removeButton.onclick = function() {
+                    tagsContainer.removeChild(tagElement);
+                };
+                tagElement.appendChild(removeButton);
+                tagsContainer.appendChild(tagElement);
+                addTagInput.value = '';
+            }
         }
-    }
+    };
+    tagsContainer.appendChild(addTagInput);
+
+    modal.style.display = 'block';
+
+    // Close the modal when the user clicks on <span> (x)
+    document.querySelector('.close').onclick = function() {
+        modal.style.display = 'none';
+    };
+
+    // Close the modal when the user clicks anywhere outside of the modal
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    };
+
+    // Save the tags when the user clicks the save button
+    document.getElementById('saveTagsButton').onclick = function() {
+        const updatedTags = Array.from(tagsContainer.children)
+            .filter(child => child.classList.contains('tag'))
+            .map(tagElement => tagElement.textContent.replace('x', '').trim());
+        saveTags(documentId, updatedTags);
+        modal.style.display = 'none';
+    };
+}
+
+function saveTags(documentId, tags) {
+    fetch('/update-tags', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ document_id: documentId, tags: tags }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Tags updated:', data);
+    })
+    .catch(error => {
+        console.error('Error updating tags:', error);
+    });
+}
 </script>
