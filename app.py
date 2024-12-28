@@ -125,5 +125,4 @@ def submit_propmt():
     })
 
 if __name__ == "__main__":
-    db.setup_database()
     app.run(debug=True)

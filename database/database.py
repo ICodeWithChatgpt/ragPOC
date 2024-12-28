@@ -1,3 +1,4 @@
+import os
 import sqlite3
 import hashlib
 import json
@@ -13,10 +14,17 @@ nltk.download('punkt')
 DB_NAME = "content_store.db"
 
 def setup_database():
+    # Delete the existing database file
+    if os.path.exists(DB_NAME):
+        os.remove(DB_NAME)
+
+    # Create a new database with the updated structure
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
+
+    # Create the content table with the updated structure
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS content (
+    CREATE TABLE content (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         document_id TEXT,
         url TEXT,
@@ -25,12 +33,13 @@ def setup_database():
         tags TEXT,
         summary TEXT,
         normalized_content TEXT,
-        vectorized_content TEXT,
         created_at TEXT
     )
     """)
+
+    # Create the chunks table (unchanged)
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS chunks (
+    CREATE TABLE chunks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         document_id TEXT,
         chunk TEXT,
@@ -38,6 +47,7 @@ def setup_database():
         created_at TEXT
     )
     """)
+
     conn.commit()
     conn.close()
 
