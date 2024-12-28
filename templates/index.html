@@ -21,41 +21,41 @@
                 <textarea id="edited-content" placeholder="Final content comes here..." name="edited-content"></textarea>
             </div>
             <div class="form-group">
-                <label for="edit-tags-checkbox" style="display: inline-block; margin-right: 5px;">Edit Tags?</label>
+                <label for="edit-tags-checkbox" style="margin-right: 5px;">Edit Tags?</label>
                 <input type="checkbox" id="edit-tags-checkbox" style="display: inline-block;">
-            </div>
-            <em>For more granular categorisation</em>
-            <div class="form-group" style="margin-top: 15px">
-                <label for="chunk-size" style="display: inline-block; margin-right: 5px;">Chunk Size:</label>
-                <span class="info-icon" id="info-icon" style="display: inline-block; cursor: pointer; margin-left: 5px;">ℹ️</span>
-                <div class="info-dialog" id="info-dialog" style="display: none; position: absolute; background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); z-index: 1000;">
-                    <p><strong>Chunk Size Recommendations:</strong></p>
-                    <p>Choose the appropriate chunk size based on the content length and the type of analysis:</p>
-                    <ul>
-                        <li><strong>Small Content (Less than 1,000 words):</strong>
-                            <br>Use a chunk size of <strong>100–200 tokens</strong>.
-                            <br><em>Why? Ensures finer granularity, ideal for detailed patterns in short texts.</em>
-                        </li>
-                        <li><strong>Medium Content (1,000–5,000 words):</strong>
-                            <br>Use a chunk size of <strong>200–500 tokens</strong>.
-                            <br><em>Why? Balances granularity and processing efficiency for medium texts.</em>
-                        </li>
-                        <li><strong>Large Content (More than 5,000 words):</strong>
-                            <br>Use a chunk size of <strong>500–1,000 tokens</strong>.
-                            <br><em>Why? Larger chunks reduce splits while preserving detail for long content.</em>
-                        </li>
-                        <li><strong>Specific Analysis:</strong>
-                            <br>Use a chunk size of <strong>50–250 tokens</strong>.
-                            <br><em>Why? Best for extracting precise themes or sentiments.</em>
-                        </li>
-                        <li><strong>Broader Analysis:</strong>
-                            <br>Use a chunk size of <strong>250–1,000 tokens</strong>.
-                            <br><em>Why? Ideal for summarization and high-level overviews.</em>
-                        </li>
-                    </ul>
-                </div>
+                <em>For more granular categorisation</em>
+                <div class="form-group" style="margin-top: 15px">
+                    <label for="chunk-size" style="display: inline-block; margin-right: 5px;">Chunk Size:</label>
+                    <span class="info-icon" id="info-icon" style=" cursor: pointer; margin-left: 5px;">ℹ️</span>
+                    <div class="info-dialog" id="info-dialog" style="display: none; position: absolute; background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); z-index: 1000;">
+                        <p><strong>Chunk Size Recommendations:</strong></p>
+                        <p>Choose the appropriate chunk size based on the content length and the type of analysis:</p>
+                        <ul>
+                            <li><strong>Small Content (Less than 1,000 words):</strong>
+                                <br>Use a chunk size of <strong>100–200 tokens</strong>.
+                                <br><em>Why? Ensures finer granularity, ideal for detailed patterns in short texts.</em>
+                            </li>
+                            <li><strong>Medium Content (1,000–5,000 words):</strong>
+                                <br>Use a chunk size of <strong>200–500 tokens</strong>.
+                                <br><em>Why? Balances granularity and processing efficiency for medium texts.</em>
+                            </li>
+                            <li><strong>Large Content (More than 5,000 words):</strong>
+                                <br>Use a chunk size of <strong>500–1,000 tokens</strong>.
+                                <br><em>Why? Larger chunks reduce splits while preserving detail for long content.</em>
+                            </li>
+                            <li><strong>Specific Analysis:</strong>
+                                <br>Use a chunk size of <strong>50–250 tokens</strong>.
+                                <br><em>Why? Best for extracting precise themes or sentiments.</em>
+                            </li>
+                            <li><strong>Broader Analysis:</strong>
+                                <br>Use a chunk size of <strong>250–1,000 tokens</strong>.
+                                <br><em>Why? Ideal for summarization and high-level overviews.</em>
+                            </li>
+                        </ul>
+                    </div>
                 <div>
                     <input id="chunk-size" value="250" style="width: 25%; padding: 5px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 15px">
+                </div>
                 </div>
                 <button type="button" class="btn" onclick="processContent()">Process Content</button>
                 <div id="loading-content" style="display: none;">
