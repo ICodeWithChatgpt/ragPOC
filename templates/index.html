@@ -10,16 +10,18 @@
 <div class="container">
     <div class="content">
         <h1>Content Processor</h1>
-        <form id="content-form">
-            <div class="form-group">
-                <label for="input-data">Enter a URL or paste raw content below:</label>
+        <form id="content-form" enctype="multipart/form-data">
+            <div class="form-group" style="margin-bottom: 10px">
+                <label for="input-data">Enter a URL, paste raw content, or upload a Word document:</label>
                 <textarea id="input-data" placeholder="URL / RAW Text" name="input-data"></textarea>
+                <input type="file" id="file-input" name="file-input" accept=".doc,.docx">
             </div>
             <button type="button" class="btn" onclick="fetchContent()">Fetch Content</button>
             <div class="form-group">
                 <label for="edited-content">Edit the content below:</label>
                 <textarea id="edited-content" placeholder="Final content comes here..." name="edited-content"></textarea>
             </div>
+        </form>
             <div class="form-group">
                 <label for="edit-tags-checkbox" style="margin-right: 5px;">Edit Tags?</label>
                 <input type="checkbox" id="edit-tags-checkbox" style="display: inline-block;">
@@ -243,21 +245,36 @@
             loadingDiv.style.display = "none";
         }
     });
+
     function fetchContent() {
-        const inputData = document.getElementById('input-data').value.trim();
-        fetch('/fetch-content', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ input_data: inputData }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('edited-content').value = data.raw_content;
-        })
-        .catch(error => console.error('Error fetching content:', error));
+    const inputData = document.getElementById('input-data').value.trim();
+    const fileInput = document.getElementById('file-input').files[0];
+    const formData = new FormData();
+
+    if (fileInput) {
+        formData.append('file-input', fileInput);
+    } else if (inputData) {
+        formData.append('input_data', inputData);
+    } else {
+        alert("Please provide a URL, raw content, or select a file.");
+        return;
     }
+
+    fetch('/fetch-content', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            console.error('Error:', data.error);
+            alert(data.error);
+        } else {
+            document.getElementById('edited-content').value = data.raw_content;
+        }
+    })
+    .catch(error => console.error('Error fetching content:', error));
+}
 
     function processContent() {
     const editedContent = document.getElementById('edited-content').value.trim();

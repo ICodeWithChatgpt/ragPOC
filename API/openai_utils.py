@@ -46,13 +46,11 @@ def process_with_openai(content, metadata_similarity=0.8, vectorized_similarity=
         )
         metadata_result = json.loads(metadata_response.choices[0].message.content)
 
-        print(content)
         print("Metadata and tags extracted successfully.")
         print("Metadata:", metadata_result.get("metadata"))
         print("Summary:", metadata_result.get("summary"))
         print("Tags:", metadata_result.get("tags"))
 
-        # Normalize the entire content
         normalization_prompt = f"""
         Normalize the following content into a clean, lowercased version suitable for vectorization.
         Remove unnecessary formatting, special characters, and excessive whitespace.
@@ -94,7 +92,6 @@ def process_with_openai(content, metadata_similarity=0.8, vectorized_similarity=
         print(f"Error processing with OpenAI: {e}")
         return None
 
-# Helper: Query OpenAI API
 def query_openai(final_prompt):
     try:
         response = openai.chat.completions.create(
@@ -105,10 +102,8 @@ def query_openai(final_prompt):
     except Exception as e:
         return f"Error querying OpenAI: {e}"
 
-# Helper: Generate Embedding
 def generate_embedding(text):
     try:
-        # Log the content being vectorized
         print(f"Vectorizing content: {text[:200]}...")  # Log the first X characters of the content
 
         response = openai.embeddings.create(
