@@ -98,7 +98,8 @@ def submit_propmt():
             #EDIT THIS PROMPT TO INFLUENCE HOW WE WANT THE RESPONSE --------------------
             #FINAL PROMPT EASY1: Use the following retrieved context to answer the user's query.
             # Maintain a serious and professional tone in your responses.
-            #        Limit yourself to maintain the humorous tone and style of the provided context.
+            # Ensure that the response is relevant, engaging, and informative.
+            # Maintain the humorous tone and style of the provided context.
 
 
 
@@ -107,7 +108,7 @@ def submit_propmt():
         You are a helpful assistant providing responses to user queries.
         Use the following retrieved context to answer the user's query.
         If the query requires creativity or ideation, use the context as inspiration to generate innovative suggestions.
-        Ensure that the response is relevant, engaging, and informative.
+        Limit yourself to maintain the humorous tone and style of the provided context.
         
 
         ### Retrieved Context:
