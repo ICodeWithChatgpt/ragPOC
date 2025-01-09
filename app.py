@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from API.openai_utils import query_openai, process_with_openai, generate_embedding
 from scraper import scrape_url
 import database.database as db
+import docx2txt
+
 
 # Load environment variables
 load_dotenv(".env.local")
@@ -13,44 +15,38 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 app = Flask(__name__)
 DB_NAME = "content_store.db"
 
-# Route: Show the Prompt Page
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html")
 
-# Route: Fetch Content
 @app.route("/fetch-content", methods=["POST"])
 def fetch_content():
-    print("STEP 1: Fetching content......................")
-    data = request.get_json()
-    input_data = data.get("input_data", "").strip()
-
-    url = None
-    if input_data.startswith("http"):
-        url = input_data
-        raw_content = scrape_url(url)
-        if not raw_content:
-            return jsonify({"error": "Failed to scrape URL."}), 400
+    if 'file-input' in request.files:
+        file = request.files['file-input']
+        if file.filename.endswith(('.doc', '.docx')):
+            raw_content = docx2txt.process(file)
+        else:
+            return jsonify({"error": "Unsupported file type."}), 400
     else:
-        raw_content = input_data
+        input_data = request.form.get("input_data", "").strip()
+        if input_data.startswith("http"):
+            raw_content = scrape_url(input_data)
+            if not raw_content:
+                return jsonify({"error": "Failed to scrape URL."}), 400
+        else:
+            raw_content = input_data
 
     return jsonify({"raw_content": raw_content})
 
 # Route: Process Content
 @app.route("/process-content", methods=["POST"])
 def process_content():
-    print("STEP 2: Processing content......................")
+    print("Processing content......................")
     data = request.get_json()
     edited_content = data.get("edited_content", "").strip()
     metadata_similarity = data.get("metadata_similarity", 0.8)
     vectorized_similarity = data.get("vectorized_similarity", 0.8)
-    try:
-        chunk_size = int(data.get("chunk_size", 250))
-        print(f"Received chunk size: {chunk_size}")
-    except (ValueError, TypeError):
-        chunk_size = 250  # Fallback if the conversion fails
-    print(f"Received chunk size: {chunk_size}")
-    print(f"Processing content with metadata similarity threshold: {metadata_similarity} and vectorized similarity threshold: {vectorized_similarity}")
+    chunk_size = int(data.get("chunk_size", 250))
 
     result = process_with_openai(edited_content, metadata_similarity, vectorized_similarity, chunk_size)
     if result:
@@ -68,7 +64,7 @@ def process_content():
             chunks=chunks,
             vectorized_chunks=vectorized_chunks
         )
-        result["document_id"] = document_id  # Include document_id in the result
+        result["document_id"] = document_id
         return jsonify(result)
     else:
         return jsonify({"error": "Failed to process content."}), 500
@@ -79,14 +75,11 @@ def update_tags():
     document_id = data.get("document_id")
     tags = data.get("tags", [])
     print(f"Updating tags for document ID {document_id}: {tags}")  # Debug log
-    # Update the tags in the database
     db.update_tags(document_id, tags)
     return jsonify({"status": "success"})
 
-# Route: Handle Prompt Submission
 @app.route("/prompt", methods=["POST"])
 def submit_propmt():
-
     data = request.get_json()
     prompt = data.get("prompt", "").strip()
     search_db_first = data.get("searchDB", False)
@@ -102,8 +95,21 @@ def submit_propmt():
     if search_db_first:
         relevant_context = db.search_vectorized_content(prompt, metadata_similarity, vectorized_similarity)
         if relevant_context:
+            #EDIT THIS PROMPT TO INFLUENCE HOW WE WANT THE RESPONSE --------------------
+            #FINAL PROMPT EASY1: Use the following retrieved context to answer the user's query.
+            # Maintain a serious and professional tone in your responses.
+            # Ensure that the response is relevant, engaging, and informative.
+            # Maintain the humorous tone and style of the provided context.
+
+
+
+
             final_prompt = f"""
+        You are a helpful assistant providing responses to user queries.
         Use the following retrieved context to answer the user's query.
+        If the query requires creativity or ideation, use the context as inspiration to generate innovative suggestions.
+        Limit yourself to maintain the humorous tone and style of the provided context.
+        
 
         ### Retrieved Context:
 
@@ -125,5 +131,4 @@ def submit_propmt():
     })
 
 if __name__ == "__main__":
-    db.setup_database()
     app.run(debug=True)
